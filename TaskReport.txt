@@ -1,0 +1,76 @@
+РЕАЛИЗАЦИЯ ПРОТОКОЛА ВЗАИМОДЕЙСТВИЯ
+1. Разработал протокол обмена сообщениями между клиентом и сервером в формате JSON
+Пример запроса (request) и ответа (response) процесса утентификации
+{
+	"type":"request",
+	"method":{
+		"name":"/auth",
+		"request":{
+			"params":[
+				{
+					"paramImpl":{
+						"@class":"message.method.auth.AuthParam",
+						"username":"Sergey",
+						"password":"111"
+					}
+				}
+			]
+		},
+		"response":{
+			"result":null
+		}
+	}
+}
+
+{
+	"type":"response",
+	"method":{
+		"name":"/auth",
+		"request":{
+			"params":[
+				{
+					"paramImpl":{
+						"@class":"message.method.auth.AuthParam",
+						"username":"Sergey",
+						"password":"111"
+					}
+				}
+			]
+		},
+		"response":{
+			"result":{
+				"resultImpl":{
+					"@class":"message.method.auth.AuthResult",
+					"auth":true,
+					"isAuth":true,
+					"message":null
+				}
+			}
+		}
+	}
+}
+
+2. Разработал модель сообщений
+    Классы находятся в модуле netty-common-obj\message
+3. Разработал механизм сериализации сообщений JSON в объекты Request и Response и обратно с использованием библиотеки Jackson.
+    netty-common-obj\message\JSONConverter.java
+
+
+РЕАЛИЗАЦИЯ КЛИЕНТА
+1. Клиентская часть написана с использованием netty
+2. Добавил в pipeLine на клиенте кодеки (MessageDecoder, MessageEncoder) для сериализации и десериализации сообщений в JSON
+    network\codec\MessageDecoder.java
+    network\codec\MessageEncoder.java
+3. Реализовал интерфейсную часть окна аутентификации на JavaFX.
+      AppController.java - основной контроллер приложения
+      LoginController.java - контроллер окна аутентифкации
+      ClientController.java - котроллер главного окна клиента
+
+
+РЕАЛИЗАЦИЯ СЕРВЕРА
+1. Серверная часть написана с использованием netty
+2. Добавил в pipeLine на сервер кодеки (MessageDecoder, MessageEncoder) для сериализации и десериализации сообщений в JSON
+3. Реализовал в базовом виде аутентификацию пользователя на севере.
+    AuthorizationServerHandler.java
+4. Реализовал сервисный уровень доступа к БД для работы с таблицей пользователей на сервере.
+    netty-server/db
