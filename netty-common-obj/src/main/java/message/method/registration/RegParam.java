@@ -1,4 +1,4 @@
-package message.method.reg;
+package message.method.registration;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import message.common.Parameter;

@@ -27,7 +27,7 @@ public class AppBootstrap {
             public void initChannel(SocketChannel ch) throws Exception {
                 ch.pipeline().addLast(
                         new StringDecoder(),
-                        new JsonObjectDecoder(),
+                        new JsonObjectDecoder(50000),
                         new StringEncoder(),
                         new MessageDecoder(),
                         new MessageEncoder(),

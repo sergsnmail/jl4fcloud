@@ -1,11 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.VBox?>
-
 
 <VBox prefHeight="300.0" prefWidth="500.0" xmlns="http://javafx.com/javafx/16" xmlns:fx="http://javafx.com/fxml/1" fx:controller="client.ClientController">
    <children>
+      <ScrollPane fitToHeight="true" fitToWidth="true" prefHeight="273.0" prefWidth="500.0">
+         <content>
+            <BorderPane prefHeight="200.0" prefWidth="418.0">
+               <center>
+                  <TextArea fx:id="fileList" editable="false" prefHeight="200.0" prefWidth="200.0" BorderPane.alignment="CENTER" />
+               </center>
+            </BorderPane>
+         </content>
+      </ScrollPane>
       <Button mnemonicParsing="false" onAction="#OnPressedAction" text="Button" />
    </children>
 </VBox>

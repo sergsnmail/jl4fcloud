@@ -4,6 +4,8 @@ import client.network.ClientNetwork;
 import client.network.Listeners;
 import message.*;
 import message.common.Message;
+import message.common.Method;
+import message.method.auth.AuthMethod;
 import message.method.auth.AuthParam;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -12,8 +14,9 @@ import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.scene.input.KeyEvent;
 import message.method.auth.AuthResult;
-import message.method.reg.RegParam;
-import message.method.reg.RegResult;
+import message.method.registration.RegParam;
+import message.method.registration.RegResult;
+import message.method.registration.RegMethod;
 
 import java.net.URL;
 import java.util.ResourceBundle;
@@ -44,19 +47,36 @@ public class LoginController implements Initializable, Listeners {
     @Override
     public void messageReceive(Message msg) {
         if (msg instanceof Response) {
-            Response msgAuthResp = (Response) msg;
-            if ("/auth".equals(msgAuthResp.getMethod().getName())) {
-                AuthResult authResult = msgAuthResp.getMethod().getResultImpl(AuthResult.class);
-                if (authResult != null && authResult.isAuth()) {
-                    callable.openMainWindowCallback();
-                }
+            Response response = (Response) msg;
+            Method method = response.getMethod();
 
+            if (method instanceof AuthMethod){
+                AuthResult authResult = (AuthResult)method.getResult();
+                if (authResult != null && authResult.isAuth()){
+                    callable.openMainWindowCallback(authResult.getSession());
+                }
+            }
+
+            if (method instanceof RegMethod){
+                RegResult regResult = (RegResult) method.getResult();
+                if (regResult != null && regResult.isAuth()) {
+                    callable.openMainWindowCallback(regResult.getSession());
+                }
+            }
+            /*Response msgAuthResp = (Response) msg;
+            AuthResult authResult = msgAuthResp.getMethod().getResultImpl(AuthResult.class);
+            AuthParam authParam = msgAuthResp.getMethod().getParamImpl(AuthParam.class);
+
+            if ("/auth".equals(msgAuthResp.getMethod().getName())) {
+                if (authResult != null && authResult.isAuth()) {
+                    callable.openMainWindowCallback(new UserSession(authParam.getUsername()));
+                }
             } else if ("/register".equals(msgAuthResp.getMethod().getName())) {
                 RegResult regResult = msgAuthResp.getMethod().getResultImpl(RegResult.class);
                 if (regResult != null && regResult.isAuth()) {
-                    callable.openMainWindowCallback();
+                    callable.openMainWindowCallback(new UserSession(authParam.getUsername()));
                 }
-            }
+            }*/
         }
     }
 
@@ -69,20 +89,27 @@ public class LoginController implements Initializable, Listeners {
     }
 
     public void onLoginButton(ActionEvent actionEvent) {
-        Request authRequest = Request.builder()
-                .setMethod(new Method("/auth"))
-                .addParameter(new AuthParam(username.getText(), password.getText()))
+        AuthMethod auth = AuthMethod.builder()
+                .setParameter(new AuthParam(username.getText(), password.getText()))
                 .build();
 
-        clientNetwork.sendCommand(authRequest);
+        Request request = Request.builder()
+                .setMethod(auth)
+                .build();
+
+        clientNetwork.sendCommand(request);
     }
 
     public void onRegisterButton(ActionEvent actionEvent) {
-        Request authRequest = Request.builder()
-                .setMethod(new Method("/register"))
-                .addParameter(new RegParam(username.getText(), password.getText()))
+        RegMethod registerMethod = RegMethod.builder()
+                .setParameter(new RegParam(username.getText(), password.getText()))
                 .build();
-        clientNetwork.sendCommand(authRequest);
+
+        Request request = Request.builder()
+                .setMethod(registerMethod)
+                .build();
+
+        clientNetwork.sendCommand(request);
     }
 
     public void keyListener(KeyEvent keyEvent) {

@@ -8,6 +8,8 @@ import lombok.Value;
 @Builder(toBuilder = true)
 public class User {
     @NonNull
+    private int userId;
+    @NonNull
     private String username;
     @NonNull
     private String email;

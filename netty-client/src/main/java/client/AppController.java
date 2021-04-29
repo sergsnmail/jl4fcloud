@@ -6,6 +6,7 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
+import message.common.UserSession;
 
 import java.io.IOException;
 
@@ -57,7 +58,7 @@ public class AppController implements Callable, ClientNetworkCallable {
         }
     }
 
-    private void openMainWindow() throws IOException {
+    private void openMainWindow(UserSession session) throws IOException {
         //Parent root = FXMLLoader.load(getClass().getResource("client.fxml"));
         FXMLLoader loader = new FXMLLoader(getClass().getResource("client.fxml"));
         scMain = new Scene(loader.load());
@@ -65,8 +66,7 @@ public class AppController implements Callable, ClientNetworkCallable {
          * Получаем контроллер и устанавливаем callback
          */
         ClientController clController = loader.getController();
-        clController.setNetwork(this);
-
+        clController.setNetwork(this).setSession(session).init();
         this.appWindow.setScene(scMain);
     }
 
@@ -75,10 +75,10 @@ public class AppController implements Callable, ClientNetworkCallable {
     }
 
     @Override
-    public void openMainWindowCallback() {
+    public void openMainWindowCallback(UserSession session) {
         Platform.runLater(() -> {
             try {
-                openMainWindow();
+                openMainWindow(session);
             } catch (IOException e) {
                 e.printStackTrace();
             }

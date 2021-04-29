@@ -1,8 +1,8 @@
 package client;
 
-import client.network.ClientNetwork;
+import message.common.UserSession;
 
 public interface Callable {
-    void openMainWindowCallback();
+    void openMainWindowCallback(UserSession session);
     void closeAppCallback();
 }
