@@ -1,6 +1,7 @@
 import input.InputParameter;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.socket.SocketChannel;
+import io.netty.handler.codec.LineBasedFrameDecoder;
 import io.netty.handler.codec.json.JsonObjectDecoder;
 import io.netty.handler.codec.string.StringDecoder;
 import io.netty.handler.codec.string.StringEncoder;
@@ -26,9 +27,10 @@ public class AppBootstrap {
             @Override
             public void initChannel(SocketChannel ch) throws Exception {
                 ch.pipeline().addLast(
+                        new LineBasedFrameDecoder(5000 * 1024,true,false),
                         new StringDecoder(),
-                        new JsonObjectDecoder(50000),
                         new StringEncoder(),
+                        new JsonObjectDecoder(),
                         new MessageDecoder(),
                         new MessageEncoder(),
                         new AuthorizationServerHandler(),

@@ -10,13 +10,14 @@ import message.common.UserSession;
 
 import java.io.IOException;
 
-public class AppController implements Callable, ClientNetworkCallable {
+public class AppController implements InterfaceCallback, ClientNetworkCallable {
 
     private Stage appWindow;
     private Scene scLogin;
     private Scene scMain;
 
     private ClientNetwork clientNetwork;
+    private ClientController clController;
 
     public AppController(Stage primaryStage) throws IOException {
         this.appWindow = primaryStage;
@@ -53,6 +54,9 @@ public class AppController implements Callable, ClientNetworkCallable {
     private void closeApp() {
         try {
             clientNetwork.close();
+            if (clController != null){
+                clController.close();
+            }
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
@@ -65,7 +69,7 @@ public class AppController implements Callable, ClientNetworkCallable {
         /**
          * Получаем контроллер и устанавливаем callback
          */
-        ClientController clController = loader.getController();
+        clController = loader.getController();
         clController.setNetwork(this).setSession(session).init();
         this.appWindow.setScene(scMain);
     }

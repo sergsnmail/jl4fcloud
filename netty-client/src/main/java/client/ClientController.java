@@ -1,8 +1,11 @@
 package client;
 
+import client.filemanager.TransferFileManager;
 import client.network.ClientNetwork;
-import client.network.Listeners;
+import client.network.NetworkListener;
 import javafx.fxml.FXML;
+import javafx.scene.control.Label;
+import javafx.scene.control.ProgressBar;
 import javafx.scene.control.TextArea;
 import message.Response;
 import message.Request;
@@ -13,25 +16,35 @@ import message.common.Message;
 import message.common.UserSession;
 import message.method.getuserfile.GetFilesMethod;
 import message.method.getuserfile.GetFilesResult;
-import message.method.putfile.PutFilesMethod;
-import message.method.putfile.PutFilesParam;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Base64;
 import java.util.ResourceBundle;
 
-public class ClientController implements Initializable, Listeners {
+public class ClientController implements Initializable, NetworkListener, NotifyCallback {
 
     @FXML
+    public ProgressBar transferProgress;
+    @FXML
+    public Label fileNameLabel;
+    @FXML
+    public Label legendLabel;
+    @FXML
     private TextArea fileList;
+
     private ClientNetwork clientNetwork;
     private UserSession session;
 
+    TransferFileManager transferFileManager;
+
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
+        transferProgress.setProgress(0.0);
     }
 
     public ClientController setNetwork(ClientNetworkCallable networkCallable) {
@@ -90,19 +103,13 @@ public class ClientController implements Initializable, Listeners {
     }
 
     public void OnPressedAction(ActionEvent actionEvent) {
-        String fileBody = encodeFileToBase64(new File("e:\\temp\\033\\codecs.txt"));
-        PutFilesParam putParam = new PutFilesParam();
-        putParam.setBody(fileBody);
-        putParam.setFilename("codecs.txt");
-        putParam.setPath("e:\\temp\\033\\");
-        PutFilesMethod  putMethod = PutFilesMethod.builder()
-                .setParameter(putParam)
-                .build();
-        Request putFileRequest = Request.builder()
-                .setSession(this.session)
-                .setMethod(putMethod)
-                .build();
-        clientNetwork.sendCommand(putFileRequest);
+        String path = "e:\\temp\\watch\\";
+        //String fileName = "VID_20200927_160322.mp4"; //Старикам тут не место.2007.BDRip.1080p.Rus.mkv
+        //String fileName = "Старикам тут не место.2007.BDRip.1080p.Rus.mkv";
+        String fileName = "My_speech.txt";
+        transferFileManager = new TransferFileManager(this.clientNetwork, this.session);
+        transferFileManager.setNotifyCallback(this);
+        transferFileManager.transferFile(Paths.get(path + fileName) );
     }
 
     private static String encodeFileToBase64(File file) {
@@ -111,6 +118,44 @@ public class ClientController implements Initializable, Listeners {
             return Base64.getEncoder().encodeToString(fileContent);
         } catch (IOException e) {
             throw new IllegalStateException("could not read file " + file, e);
+        }
+    }
+
+    private void decodeBase64ToFile(String filePathName, String fileEncodedContent) {
+        try {
+            byte[] fileContent = Base64.getDecoder().decode(fileEncodedContent);
+            try (FileOutputStream fos = new FileOutputStream(filePathName)) {
+                fos.write(fileContent);
+            }
+        } catch (IOException e) {
+            throw new IllegalStateException("could not create file " + filePathName, e);
+        }
+    }
+
+    @Override
+    public void notify(Object notifyObj) {
+        Platform.runLater(() -> {
+            handleNotify(notifyObj);
+        });
+    }
+
+    private void handleNotify(Object notifyObj) {
+        if (notifyObj instanceof TransferFileManager.TransferNotifyObject){
+            TransferFileManager.TransferNotifyObject nObj = (TransferFileManager.TransferNotifyObject) notifyObj;
+            fileNameLabel.setText(nObj.getFileName());
+            legendLabel.setText(nObj.getCurrentNumber() + " of "+ nObj.getTotalNumber());
+            double currNum = nObj.getCurrentNumber();
+            double totalNum = nObj.getTotalNumber();
+            double currProgress = currNum/totalNum;
+            //System.out.printf("%f div %f = %f%n", currNum, totalNum, currProgress);
+            transferProgress.setProgress(currProgress);
+        }
+    }
+
+    public void close() {
+        if (transferFileManager != null){
+            transferFileManager.transferShutdown();
+            System.out.println("transfer shutdown\n");
         }
     }
 }

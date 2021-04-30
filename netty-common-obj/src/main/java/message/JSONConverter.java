@@ -8,7 +8,7 @@ public class JSONConverter {
 
     public static String object2Json(Object obj) {
         try {
-            return mapper.writeValueAsString(obj);
+            return mapper.writeValueAsString(obj) + "\r\n";
         }catch (Exception e)
         {
             e.printStackTrace();

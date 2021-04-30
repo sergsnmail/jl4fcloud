@@ -5,6 +5,15 @@ import message.common.Parameter;
 
 public class PutFilesParam extends Parameter {
 
+    @JsonProperty("packageId")
+    private String packageId;
+
+    @JsonProperty("partNumber")
+    private int partNumber;
+
+    @JsonProperty("totalNumber")
+    private int totalNumber;
+
     @JsonProperty("filename")
     private String filename;
 
@@ -36,5 +45,29 @@ public class PutFilesParam extends Parameter {
 
     public void setBody(String body) {
         this.body = body;
+    }
+
+    public String getPackageId() {
+        return packageId;
+    }
+
+    public void setPackageId(String packageid) {
+        this.packageId = packageid;
+    }
+
+    public int getPartNumber() {
+        return partNumber;
+    }
+
+    public void setPartNumber(int partnumber) {
+        this.partNumber = partnumber;
+    }
+
+    public int getTotalNumber() {
+        return totalNumber;
+    }
+
+    public void setTotalNumber(int totalnumber) {
+        this.totalNumber = totalnumber;
     }
 }

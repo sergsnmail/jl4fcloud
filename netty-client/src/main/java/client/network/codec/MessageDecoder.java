@@ -11,7 +11,7 @@ public class MessageDecoder extends MessageToMessageDecoder<String> {
     @Override
     protected void decode(ChannelHandlerContext ctx, String msg, List<Object> out) throws Exception {
         String message = msg;
-        System.out.println(message);
+        //System.out.println(message);
         Message inMessage = JSONConverter.Json2Object(message, Message.class);
         out.add(inMessage);
     }

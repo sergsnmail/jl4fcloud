@@ -9,11 +9,18 @@ import message.common.Message;
 import java.util.List;
 
 public class MessageDecoder extends MessageToMessageDecoder {
+
+    StringBuilder inputString = new StringBuilder();
+
     @Override
     protected void decode(ChannelHandlerContext ctx, Object msg, List out) throws Exception {
         String message = (String) msg;
-        System.out.println(message);
-        Message inMessage = JSONConverter.Json2Object(message, Message.class);
-        out.add(inMessage);
+        inputString.append(message);
+        //System.out.println(message);
+        Message objMessage = JSONConverter.Json2Object(inputString.toString(), Message.class);
+        if (objMessage != null) {
+            inputString.setLength(0);
+            out.add(objMessage);
+        }
     }
 }

@@ -10,6 +10,7 @@ import db.user.UserServiceImpl;
 import input.HandlerParameter;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
+import message.Base64Converter;
 import message.Request;
 import message.Response;
 import message.common.Message;
@@ -21,6 +22,11 @@ import message.method.putfile.PutFilesMethod;
 import message.method.putfile.PutFilesParam;
 import message.method.putfile.PutFilesResult;
 
+import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Base64;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.Base64.Decoder;
@@ -94,6 +100,7 @@ public class MessageServerHandler extends SimpleChannelInboundHandler<Message> {
             Response response = Response.builder()
                     .setMethod(request.getMethod())
                     .build();
+
             this.ctx.writeAndFlush(response);
         }
 
@@ -101,13 +108,59 @@ public class MessageServerHandler extends SimpleChannelInboundHandler<Message> {
             PutFilesMethod method = (PutFilesMethod) request.getMethod();
             PutFilesParam param = method.getParameter();
             PutFilesResult result = new PutFilesResult();
+            //System.out.printf("package file %d of %d received\n",param.getPartNumber(), param.getTotalNumber());
+            if (!param.getBody().isEmpty()){
+                try {
+                    Path newFile = Files.createFile(Paths.get(appParam.getLocation() +
+                            "\\" + param.getFilename() +
+                            "__" + param.getPartNumber()));
+                    //Files.write(newFile, Base64Converter.decodeBase64ToByte(param.getBody()));
 
-            /*byte[] base64Decoded = DatatypeConverter.parseBase64Binary(param.getBody());*/
-            System.out.println("Encoded file in Json:\n");
-            System.out.println(param.getBody());
+                    try(OutputStream writer = Files.newOutputStream(newFile)){
+                        writer.write(Base64Converter.decodeBase64ToByte(param.getBody()));
+                    }catch(IOException ex){
+                        ex.printStackTrace();
+                    }
+
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            param.setBody(null);
+            result.setStatus("1");
+           /* if (param.getPartNumber()==99999){
+                System.out.println("stop");
+            }*/
+
+            method.setResult(result);
+            Response response = Response.builder()
+                    .setMethod(method)
+                    .build();
+
+            this.ctx.writeAndFlush(response);
+            //decodeBase64ToFile(appParam.getLocation() + "\\" + param.getFilename(), param.getBody());
         }
     }
 
+    private static String encodeFileToBase64(File file) {
+        try {
+            byte[] fileContent = Files.readAllBytes(file.toPath());
+            return Base64.getEncoder().encodeToString(fileContent);
+        } catch (IOException e) {
+            throw new IllegalStateException("could not read file " + file, e);
+        }
+    }
+
+    private void decodeBase64ToFile(String filePathName, String fileEncodedContent) {
+        try {
+            byte[] fileContent = Base64.getDecoder().decode(fileEncodedContent);
+            try (FileOutputStream fos = new FileOutputStream(filePathName)) {
+                fos.write(fileContent);
+            }
+        } catch (IOException e) {
+            throw new IllegalStateException("could not create file " + filePathName, e);
+        }
+    }
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
         cause.printStackTrace();

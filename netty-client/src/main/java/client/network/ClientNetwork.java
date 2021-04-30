@@ -3,6 +3,7 @@ package client.network;
 import client.network.codec.MessageDecoder;
 import client.network.handler.MessageClientHandler;
 import client.network.codec.MessageEncoder;
+import io.netty.handler.codec.LineBasedFrameDecoder;
 import message.Request;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.ChannelFuture;
@@ -36,6 +37,7 @@ public class ClientNetwork {
                     protected void initChannel(SocketChannel socketChannel) throws Exception {
                         channel = socketChannel;
                         socketChannel.pipeline().addLast(
+                                new LineBasedFrameDecoder(5000 * 1024,true,false),
                                 new StringDecoder(),
                                 new StringEncoder(),
                                 new JsonObjectDecoder(),
@@ -46,7 +48,7 @@ public class ClientNetwork {
                 });
 
                 // Start the client.
-                ChannelFuture f = b.connect(HOST, PORT).sync(); // (4)
+                ChannelFuture f = b.connect(HOST, PORT).sync();
                 // Wait until the connection is closed.
                 f.channel().closeFuture().sync();
             } catch (Exception e) {
@@ -62,11 +64,11 @@ public class ClientNetwork {
         channel.writeAndFlush(msg);
     }
 
-    public void addChannelListener(Listeners listener){
+    public void addChannelListener(NetworkListener listener){
         this.messageHandler.addListener(listener);
     }
 
-    public void removeChannelListener(Listeners listener){
+    public void removeChannelListener(NetworkListener listener){
         this.messageHandler.removeListener(listener);
     }
 

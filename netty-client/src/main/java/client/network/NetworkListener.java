@@ -2,6 +2,6 @@ package client.network;
 
 import message.common.Message;
 
-public interface Listeners {
+public interface NetworkListener {
     void messageReceive(Message msg);
 }

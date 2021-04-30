@@ -1,6 +1,6 @@
 package client.network.handler;
 
-import client.network.Listeners;
+import client.network.NetworkListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import message.common.Message;
@@ -10,7 +10,7 @@ import java.util.List;
 
 public class MessageClientHandler extends SimpleChannelInboundHandler<Message> {
 
-    List<Listeners> listeners = new ArrayList<>();
+    List<NetworkListener> listeners = new ArrayList<>();
 
     @Override
     protected void channelRead0(ChannelHandlerContext channelHandlerContext, Message msg) throws Exception {
@@ -24,17 +24,17 @@ public class MessageClientHandler extends SimpleChannelInboundHandler<Message> {
     }
 
     private void fireNotify(Message msg){
-        for (Listeners listener: listeners) {
+        for (NetworkListener listener: listeners) {
             listener.messageReceive(msg);
         }
     }
 
-    public void addListener(Listeners listener){
+    public void addListener(NetworkListener listener){
         this.listeners.add(listener);;
     }
 
-    public void removeListener(Listeners mlistener){
-        for (Listeners listener: listeners){
+    public void removeListener(NetworkListener mlistener){
+        for (NetworkListener listener: listeners){
             if (listener.equals(mlistener)){
                 listeners.remove(mlistener);
                 break;

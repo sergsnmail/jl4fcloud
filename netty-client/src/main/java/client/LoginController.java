@@ -1,7 +1,7 @@
 package client;
 
 import client.network.ClientNetwork;
-import client.network.Listeners;
+import client.network.NetworkListener;
 import message.*;
 import message.common.Message;
 import message.common.Method;
@@ -21,21 +21,21 @@ import message.method.registration.RegMethod;
 import java.net.URL;
 import java.util.ResourceBundle;
 
-public class LoginController implements Initializable, Listeners {
+public class LoginController implements Initializable, NetworkListener {
 
     @FXML
     private TextField username;
     @FXML
     private PasswordField password;
 
-    private Callable callable;
+    private InterfaceCallback callable;
     private ClientNetwork clientNetwork;
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
     }
 
-    public void init(Callable callable) {
+    public void init(InterfaceCallback callable) {
         this.callable = callable;
     }
 
