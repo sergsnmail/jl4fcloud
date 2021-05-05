@@ -4,3 +4,4 @@
 /netty-server/target/
 /.idea
 .idea/
+*.iml

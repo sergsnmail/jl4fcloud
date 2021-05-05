@@ -5,6 +5,7 @@ import io.netty.handler.codec.LineBasedFrameDecoder;
 import io.netty.handler.codec.json.JsonObjectDecoder;
 import io.netty.handler.codec.string.StringDecoder;
 import io.netty.handler.codec.string.StringEncoder;
+import message.common.UserSession;
 import server.Server;
 import server.codec.MessageEncoder;
 import server.codec.MessageDecoder;
@@ -26,6 +27,7 @@ public class AppBootstrap {
         new Server(this.appParam).addChildHandler(new ChannelInitializer<SocketChannel>() {
             @Override
             public void initChannel(SocketChannel ch) throws Exception {
+                UserSession userSession = new UserSession();
                 ch.pipeline().addLast(
                         new LineBasedFrameDecoder(5000 * 1024,true,false),
                         new StringDecoder(),
@@ -33,8 +35,8 @@ public class AppBootstrap {
                         new JsonObjectDecoder(),
                         new MessageDecoder(),
                         new MessageEncoder(),
-                        new AuthorizationServerHandler(),
-                        new MessageServerHandler(appParam));
+                        new AuthorizationServerHandler(userSession),
+                        new MessageServerHandler(appParam, userSession));
             }
         }).run();
     }

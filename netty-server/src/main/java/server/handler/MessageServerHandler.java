@@ -16,7 +16,6 @@ import message.Response;
 import message.common.Message;
 import message.common.UserSession;
 import message.method.getuserfile.GetFilesMethod;
-import message.method.getuserfile.GetFilesParam;
 import message.method.getuserfile.GetFilesResult;
 import message.method.putfile.PutFilesMethod;
 import message.method.putfile.PutFilesParam;
@@ -26,10 +25,15 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Base64;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
-import java.util.Base64.Decoder;
+
+import java.util.UUID;
+
+import static java.nio.file.StandardOpenOption.APPEND;
+import static java.nio.file.StandardOpenOption.CREATE;
 
 public class MessageServerHandler extends SimpleChannelInboundHandler<Message> {
 
@@ -38,9 +42,12 @@ public class MessageServerHandler extends SimpleChannelInboundHandler<Message> {
     private ChannelHandlerContext ctx;
     private UserServiceImpl userService;
     private FileServiceImpl fileService;
+    private UserSession userSession;
+    private Map<String, String> transfer = new HashMap<>();
 
-    public MessageServerHandler(HandlerParameter appParam) {
+    public MessageServerHandler(HandlerParameter appParam, UserSession userSession) {
         this.appParam = appParam;
+        this.userSession = userSession;
 
         DbStorage db= new DbStorage();
         this.userService = new UserServiceImpl(new UserDataSourceImpl(db));
@@ -57,13 +64,6 @@ public class MessageServerHandler extends SimpleChannelInboundHandler<Message> {
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         System.out.println(HANDLER_ID + " inactive");
     }
-
-    /*@Override
-    public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        System.out.println(HANDLER_ID + " handler");
-        System.out.println(msg.toString());
-        ctx.writeAndFlush(msg);
-    }*/
 
     @Override
     protected void channelRead0(ChannelHandlerContext channelHandlerContext, Message message) throws Exception {
@@ -82,11 +82,9 @@ public class MessageServerHandler extends SimpleChannelInboundHandler<Message> {
     private void handleRequest(Request request) {
         if (request.getMethod() instanceof GetFilesMethod){
             GetFilesMethod method = (GetFilesMethod) request.getMethod();
-            GetFilesParam param = method.getParameter();;
             GetFilesResult result = new GetFilesResult();
-            UserSession session = request.getSession();
 
-            User user = userService.getUser(session.getUsername());
+            User user = userService.getUser(userSession.getUsername());
             if (user == null){
                 throw new IllegalArgumentException("User error");
             }
@@ -97,8 +95,9 @@ public class MessageServerHandler extends SimpleChannelInboundHandler<Message> {
                     .collect(Collectors.toList());
 
             result.setFiles(filename);
+            method.setResult(result);
             Response response = Response.builder()
-                    .setMethod(request.getMethod())
+                    .setMethod(method)
                     .build();
 
             this.ctx.writeAndFlush(response);
@@ -107,30 +106,32 @@ public class MessageServerHandler extends SimpleChannelInboundHandler<Message> {
         if (request.getMethod() instanceof PutFilesMethod){
             PutFilesMethod method = (PutFilesMethod) request.getMethod();
             PutFilesParam param = method.getParameter();
-            PutFilesResult result = new PutFilesResult();
-            //System.out.printf("package file %d of %d received\n",param.getPartNumber(), param.getTotalNumber());
-            if (!param.getBody().isEmpty()){
+            if (param != null && !param.getBody().isEmpty()){
                 try {
-                    Path newFile = Files.createFile(Paths.get(appParam.getLocation() +
-                            "\\" + param.getFilename() +
-                            "__" + param.getPartNumber()));
-                    //Files.write(newFile, Base64Converter.decodeBase64ToByte(param.getBody()));
+                    String pId = param.getPackageId();
 
-                    try(OutputStream writer = Files.newOutputStream(newFile)){
-                        writer.write(Base64Converter.decodeBase64ToByte(param.getBody()));
-                    }catch(IOException ex){
+                    String transferFile = transfer.getOrDefault(pId, appParam.getLocation() + "\\" + getUploadFilePath());
+                    transfer.put(pId, transferFile);
+
+                    Files.createDirectories(Paths.get(transferFile).getParent());
+                    try(OutputStream writer = new BufferedOutputStream(Files.newOutputStream(Paths.get(transferFile), CREATE, APPEND))){
+                        byte[] data = Base64Converter.decodeBase64ToByte(param.getBody());
+                        writer.write(data, 0 , data.length);
+                        writer.flush();
+                    } catch(IOException ex) {
                         ex.printStackTrace();
                     }
 
-                } catch (IOException e) {
+                    if (param.getPartNumber() == param.getTotalNumber()){
+                        transfer.remove(pId);
+                    }
+                } catch (Exception e) {
                     e.printStackTrace();
                 }
             }
             param.setBody(null);
+            PutFilesResult result = new PutFilesResult();
             result.setStatus("1");
-           /* if (param.getPartNumber()==99999){
-                System.out.println("stop");
-            }*/
 
             method.setResult(result);
             Response response = Response.builder()
@@ -138,32 +139,25 @@ public class MessageServerHandler extends SimpleChannelInboundHandler<Message> {
                     .build();
 
             this.ctx.writeAndFlush(response);
-            //decodeBase64ToFile(appParam.getLocation() + "\\" + param.getFilename(), param.getBody());
         }
     }
 
-    private static String encodeFileToBase64(File file) {
-        try {
-            byte[] fileContent = Files.readAllBytes(file.toPath());
-            return Base64.getEncoder().encodeToString(fileContent);
-        } catch (IOException e) {
-            throw new IllegalStateException("could not read file " + file, e);
-        }
-    }
-
-    private void decodeBase64ToFile(String filePathName, String fileEncodedContent) {
-        try {
-            byte[] fileContent = Base64.getDecoder().decode(fileEncodedContent);
-            try (FileOutputStream fos = new FileOutputStream(filePathName)) {
-                fos.write(fileContent);
-            }
-        } catch (IOException e) {
-            throw new IllegalStateException("could not create file " + filePathName, e);
-        }
-    }
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
         cause.printStackTrace();
         ctx.close();
+    }
+
+    private String getUploadFilePath(){
+        String uploadFileName = UUID.randomUUID().toString();
+
+        /**
+         * берем первые 6 символов имени файла
+         */
+        String pathSegment = uploadFileName.substring(0,6);
+
+        StringBuilder sb = new StringBuilder(pathSegment);
+        sb.insert(2, '\\').insert(5,'\\');
+        return sb.toString() + '\\' + uploadFileName;
     }
 }

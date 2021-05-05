@@ -1,6 +1,7 @@
 package message.method.putfile;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import message.common.Parameter;
 
 public class PutFilesParam extends Parameter {
@@ -14,16 +15,21 @@ public class PutFilesParam extends Parameter {
     @JsonProperty("totalNumber")
     private int totalNumber;
 
-    @JsonProperty("filename")
-    private String filename;
+    @JsonProperty("metadata")
+    @JsonTypeInfo(use=JsonTypeInfo.Id.CLASS, property="@class")
+    private FileMetadata metadata;
 
-    @JsonProperty("path")
-    private String path;
+
+    /*@JsonProperty("filename")
+    private String filename;*/
+
+    /*@JsonProperty("path")
+    private String path;*/
 
     @JsonProperty("body")
     private String body;
 
-    public String getFilename() {
+    /*public String getFilename() {
         return filename;
     }
 
@@ -37,7 +43,7 @@ public class PutFilesParam extends Parameter {
 
     public void setPath(String path) {
         this.path = path;
-    }
+    }*/
 
     public String getBody() {
         return body;
@@ -69,5 +75,13 @@ public class PutFilesParam extends Parameter {
 
     public void setTotalNumber(int totalnumber) {
         this.totalNumber = totalnumber;
+    }
+
+    public void setMetadata(FileMetadata metadata) {
+        this.metadata = metadata;
+    }
+
+    public FileMetadata getMetadata() {
+        return metadata;
     }
 }

@@ -1,29 +1,30 @@
 package client.filemanager;
 
-import io.netty.handler.codec.sctp.SctpOutboundByteStreamHandler;
-
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.Iterator;
+import java.util.UUID;
 
 public class PackageCollection implements Iterator<FilePackage> {
 
     private int DEFAULT_PACKAGE_SIZE = 3000 * 1024;
-
+    private final String packageId;
     private final Path filePath;
     private int currentPackage = 0;
     private int totalPackage = 1;
 
-    ByteBuffer buffer;
-    FileChannel inChannel;
-    RandomAccessFile aFile;
+    private ByteBuffer buffer;
+    private FileChannel inChannel;
+    private RandomAccessFile aFile;
 
-    public PackageCollection(Path filePath) {
+    public PackageCollection(Path filePath){//}, FileMetadata fileMetadata) {
         this.filePath = filePath;
+        this.packageId = UUID.randomUUID().toString();//(filePath.toString()).toString();
         init();
     }
 
@@ -63,16 +64,16 @@ public class PackageCollection implements Iterator<FilePackage> {
     public FilePackage next() {
         FilePackage nextPackage = null;
         try {
-            if (inChannel.read(buffer) > 0){
+            int length;
+            if ((length = inChannel.read(buffer)) > 0){
                 buffer.flip();
 
                 currentPackage++;
                 nextPackage = new FilePackage();
-                nextPackage.setPackageNumber(currentPackage);
-                nextPackage.setTotalPackageCount(totalPackage);
-                nextPackage.setBody(buffer.array());
-                nextPackage.setFileName(filePath.getFileName().toString());
-                nextPackage.setFilePath(filePath.getParent().toString());
+                nextPackage.setPackageId(this.packageId);
+                nextPackage.setPackageNumber(this.currentPackage);
+                nextPackage.setTotalPackageCount(this.totalPackage);
+                nextPackage.setBody(Arrays.copyOfRange(this.buffer.array(),0,length));
 
                 buffer.clear();
             } else {
@@ -82,5 +83,9 @@ public class PackageCollection implements Iterator<FilePackage> {
             e.printStackTrace();
         }
         return nextPackage;
+    }
+
+    public String getPackageId() {
+        return packageId;
     }
 }

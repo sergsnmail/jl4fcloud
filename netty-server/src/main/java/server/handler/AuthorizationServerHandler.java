@@ -19,7 +19,12 @@ import message.method.registration.RegMethod;
 public class AuthorizationServerHandler extends ChannelInboundHandlerAdapter {
 
     private final String HANDLER_ID = "Authorization";
+    private final UserSession userSession;
     private UserServiceImpl userService = new UserServiceImpl(new UserDataSourceImpl(new DbStorage()));
+
+    public AuthorizationServerHandler(UserSession userSession) {
+        this.userSession = userSession;
+    }
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
@@ -46,7 +51,8 @@ public class AuthorizationServerHandler extends ChannelInboundHandlerAdapter {
 
                 if (userService.authorizedUser(username, pass)){ // is authorized
                     authResult.setAuth(true);
-                    authResult.setSession(new UserSession(username));
+                    userSession.setUsername(username);
+                    authResult.setSession(userSession);
 
                     ctx.writeAndFlush(resp);
                     ctx.channel().pipeline().remove(this);
@@ -59,14 +65,16 @@ public class AuthorizationServerHandler extends ChannelInboundHandlerAdapter {
         } else if (method instanceof RegMethod){
             RegParam regParam = ((RegMethod) method).getParameter();
             if (regParam != null){
-                User newUser = userService.registerUser(regParam.getUsername(),"example@example.com",regParam.getPassword());
                 RegResult regResult = new RegResult();
                 Response resp = Response.builder()
                         .setMethod(method)
                         .build();
-                if (newUser == null) {
+                User newUser = userService.registerUser(regParam.getUsername(),"example@example.com",regParam.getPassword());
+                if (newUser != null) {
                     regResult.setAuth(true);
-                    regResult.setSession(new UserSession(newUser.getUsername()));
+                    userSession.setUserid(newUser.getUserId());
+                    userSession.setUsername(newUser.getUsername());
+                    regResult.setSession(userSession);
                     ctx.writeAndFlush(resp);
                     ctx.channel().pipeline().remove(this);
                 } else {

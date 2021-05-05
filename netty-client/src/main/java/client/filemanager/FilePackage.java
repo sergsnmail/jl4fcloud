@@ -1,15 +1,19 @@
 package client.filemanager;
 
+import message.method.putfile.FileMetadata;
+
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class FilePackage {
 
+    private String packageId;
     private int packageNumber;
     private int totalPackageCount;
     private byte[] body;
-    private String fileName;
-    private String filePath;
-    private AtomicBoolean isReceived = new AtomicBoolean(false);
+    private FileMetadata fileMetadata;
+    //private AtomicBoolean isReceived = new AtomicBoolean(false);
+    private boolean isReceived = false;
 
     public int getPackageNumber() {
         return packageNumber;
@@ -35,27 +39,51 @@ public class FilePackage {
         this.body = body;
     }
 
-    public String getFileName() {
-        return fileName;
-    }
+//    public String getFileName() {
+//        return fileName;
+//    }
+//
+//    public void setFileName(String fileName) {
+//        this.fileName = fileName;
+//    }
+//
+//    public String getFilePath() {
+//        return filePath;
+//    }
+//
+//    public void setFilePath(String filePath) {
+//        this.filePath = filePath;
+//    }
 
-    public void setFileName(String fileName) {
-        this.fileName = fileName;
-    }
+//    public AtomicBoolean isReceived() {
+//        return isReceived;
+//    }
+//
+//    public void setReceived(boolean received) {
+//        isReceived.set(received);
+//    }
 
-    public String getFilePath() {
-        return filePath;
-    }
-
-    public void setFilePath(String filePath) {
-        this.filePath = filePath;
-    }
-
-    public AtomicBoolean isReceived() {
+    public boolean isReceived() {
         return isReceived;
     }
 
     public void setReceived(boolean received) {
-        isReceived.set(received);
+        isReceived = received;
+    }
+
+    public FileMetadata getFileMetadata() {
+        return fileMetadata;
+    }
+
+    public void setFileMetadata(FileMetadata fileMetadata) {
+        this.fileMetadata = fileMetadata;
+    }
+
+    public String getPackageId() {
+        return packageId;
+    }
+
+    public void setPackageId(String packageId) {
+        this.packageId = packageId;
     }
 }

@@ -74,5 +74,6 @@ public class ClientNetwork {
 
     public void close() throws InterruptedException {
         channel.close();
+        System.out.println("channel close");
     }
 }

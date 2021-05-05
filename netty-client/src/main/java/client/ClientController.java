@@ -16,14 +16,18 @@ import message.common.Message;
 import message.common.UserSession;
 import message.method.getuserfile.GetFilesMethod;
 import message.method.getuserfile.GetFilesResult;
+import message.method.putfile.FileMetadata;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Base64;
+import java.util.List;
 import java.util.ResourceBundle;
 
 public class ClientController implements Initializable, NetworkListener, NotifyCallback {
@@ -103,34 +107,48 @@ public class ClientController implements Initializable, NetworkListener, NotifyC
     }
 
     public void OnPressedAction(ActionEvent actionEvent) {
+
         String path = "e:\\temp\\watch\\";
-        //String fileName = "VID_20200927_160322.mp4"; //Старикам тут не место.2007.BDRip.1080p.Rus.mkv
-        //String fileName = "Старикам тут не место.2007.BDRip.1080p.Rus.mkv";
-        String fileName = "My_speech.txt";
+        String fileName1 = "VID_20200927_160322.mp4";
+        String fileName2 = "Старикам тут не место.2007.BDRip.1080p.Rus.mkv";
+        String fileName3 = "My_speech.txt";
+
         transferFileManager = new TransferFileManager(this.clientNetwork, this.session);
         transferFileManager.setNotifyCallback(this);
-        transferFileManager.transferFile(Paths.get(path + fileName) );
-    }
 
-    private static String encodeFileToBase64(File file) {
-        try {
-            byte[] fileContent = Files.readAllBytes(file.toPath());
-            return Base64.getEncoder().encodeToString(fileContent);
-        } catch (IOException e) {
-            throw new IllegalStateException("could not read file " + file, e);
+        List<String> filesForTransfer = new ArrayList<>();
+        filesForTransfer.add(path + fileName1);
+        filesForTransfer.add(path + fileName2);
+        filesForTransfer.add(path + fileName3);
+
+        for (String file : filesForTransfer) {
+            Path filePath = Paths.get(file);
+            FileMetadata metadata = new FileMetadata();
+            metadata.setFileName(filePath.getFileName().toString());
+            metadata.setFilePath(filePath.getParent().toString());
+            transferFileManager.transferFile(filePath, metadata);
         }
     }
 
-    private void decodeBase64ToFile(String filePathName, String fileEncodedContent) {
-        try {
-            byte[] fileContent = Base64.getDecoder().decode(fileEncodedContent);
-            try (FileOutputStream fos = new FileOutputStream(filePathName)) {
-                fos.write(fileContent);
-            }
-        } catch (IOException e) {
-            throw new IllegalStateException("could not create file " + filePathName, e);
-        }
-    }
+//    private static String encodeFileToBase64(File file) {
+//        try {
+//            byte[] fileContent = Files.readAllBytes(file.toPath());
+//            return Base64.getEncoder().encodeToString(fileContent);
+//        } catch (IOException e) {
+//            throw new IllegalStateException("could not read file " + file, e);
+//        }
+//    }
+//
+//    private void decodeBase64ToFile(String filePathName, String fileEncodedContent) {
+//        try {
+//            byte[] fileContent = Base64.getDecoder().decode(fileEncodedContent);
+//            try (FileOutputStream fos = new FileOutputStream(filePathName)) {
+//                fos.write(fileContent);
+//            }
+//        } catch (IOException e) {
+//            throw new IllegalStateException("could not create file " + filePathName, e);
+//        }
+//    }
 
     @Override
     public void notify(Object notifyObj) {
@@ -153,9 +171,9 @@ public class ClientController implements Initializable, NetworkListener, NotifyC
     }
 
     public void close() {
+        System.out.println("Start transfer shutdown");
         if (transferFileManager != null){
             transferFileManager.transferShutdown();
-            System.out.println("transfer shutdown\n");
         }
     }
 }

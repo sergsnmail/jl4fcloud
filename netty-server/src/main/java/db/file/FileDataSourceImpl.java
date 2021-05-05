@@ -50,6 +50,7 @@ public class FileDataSourceImpl implements FileDataSource {
             while (resultSet.next()) {
                 result.add(StorageFile.builder()
                         .id(resultSet.getInt("id"))
+                        .user(user)
                         .created_at(resultSet.getString("created_at"))
                         .modified_at(resultSet.getString("modified_at"))
                         .file_name(resultSet.getString("file_name"))
