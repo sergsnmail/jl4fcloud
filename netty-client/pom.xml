@@ -3,30 +3,28 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
-        <artifactId>netty_test_1</artifactId>
-        <groupId>org.example</groupId>
+        <artifactId>jl4cloud-all</artifactId>
+        <groupId>com.sergsnmail.jl4cloud</groupId>
         <version>1.0-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
+
     <artifactId>netty-client</artifactId>
 
     <properties>
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
+        <maven.compiler.release>11</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <javafx.version>16</javafx.version>
         <javafx.maven.plugin.version>0.0.6</javafx.maven.plugin.version>
+        <javafx.executor.path>c:\java\corretto-11.0.10\bin\java.exe</javafx.executor.path>
+
     </properties>
 
     <dependencies>
         <dependency>
-            <groupId>org.example</groupId>
-            <artifactId>netty-common-obj</artifactId>
-            <version>1.0-SNAPSHOT</version>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.example</groupId>
+            <groupId>com.sergsnmail.jl4cloud</groupId>
             <artifactId>netty-common-obj</artifactId>
             <version>1.0-SNAPSHOT</version>
             <scope>compile</scope>
@@ -47,11 +45,21 @@
     <build>
         <plugins>
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.8.1</version>
+                <configuration>
+                    <release>${maven.compiler.release}</release>
+                </configuration>
+            </plugin>
+
+            <plugin>
                 <groupId>org.openjfx</groupId>
                 <artifactId>javafx-maven-plugin</artifactId>
                 <version>${javafx.maven.plugin.version}</version>
                 <configuration>
-                    <mainClass>ClientApp</mainClass>
+                    <mainClass>com.sergsnmail.client.ClientApp</mainClass>
+                    <executable>${javafx.executor.path}</executable>
                 </configuration>
             </plugin>
         </plugins>

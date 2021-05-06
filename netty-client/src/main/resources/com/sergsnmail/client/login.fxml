@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.image.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
+
+<AnchorPane onKeyPressed="#keyListener" prefHeight="370.0" prefWidth="350.0" style="-fx-background-color: #ffffff;" xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.sergsnmail.client.LoginController">
+   <children>
+      <AnchorPane layoutX="-1.0" prefHeight="154.0" prefWidth="350.0" style="-fx-background-color: #69c0ff;" AnchorPane.bottomAnchor="339.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+         <children>
+            <ImageView fitHeight="161.0" fitWidth="230.0" layoutX="61.0" pickOnBounds="true" preserveRatio="true">
+               <image>
+                  <Image url="@geekbrains-11.png" />
+               </image>
+            </ImageView>
+            <Button fx:id="closeButton" layoutX="319.0" layoutY="10.0" mnemonicParsing="false" onAction="#onCloseButton" prefHeight="22.0" prefWidth="22.0" style="-fx-background-color: #ffffff; -fx-background-radius: 11;" text="X" textFill="#69c0ff" />
+         </children></AnchorPane>
+      <VBox layoutY="168.0" prefHeight="320.0" prefWidth="350.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="154.0">
+         <children>
+            <AnchorPane prefHeight="202.0" prefWidth="350.0">
+               <children>
+                  <TextField fx:id="username" layoutX="50.0" layoutY="53.0" prefHeight="40.0" prefWidth="250.0" promptText="Username" style="-fx-border-color: #69c0ff; -fx-border-radius: 20; -fx-background-insets: 0; -fx-background-color: #ffffff;">
+                     <font>
+                        <Font size="14.0" />
+                     </font></TextField>
+                  <Label layoutX="50.0" layoutY="26.0" prefHeight="23.0" prefWidth="92.0" text="Username:" textFill="#69c0ff">
+                     <font>
+                        <Font size="16.0" />
+                     </font>
+                  </Label>
+                  <Label layoutX="50.0" layoutY="108.0" prefHeight="23.0" prefWidth="82.0" text="Password:" textFill="#69c0ff">
+                     <font>
+                        <Font size="16.0" />
+                     </font>
+                  </Label>
+                  <PasswordField fx:id="password" layoutX="50.0" layoutY="135.0" prefHeight="40.0" prefWidth="250.0" promptText="Password" style="-fx-border-color: #69c0ff; -fx-border-radius: 20; -fx-background-insets: 0; -fx-background-color: #ffffff;">
+                     <font>
+                        <Font size="14.0" />
+                     </font></PasswordField>
+               </children>
+            </AnchorPane>
+            <AnchorPane prefHeight="140.0" prefWidth="350.0">
+               <children>
+                  <Button fx:id="loginButton" layoutX="100.0" layoutY="10.0" mnemonicParsing="false" onAction="#onLoginButton" prefHeight="40.0" prefWidth="150.0" style="-fx-background-color: #69c0ff; -fx-background-radius: 20;" text="Login" textFill="WHITE">
+                     <font>
+                        <Font size="16.0" />
+                     </font>
+                  </Button>
+                  <Button fx:id="registerButton" layoutX="100.0" layoutY="65.0" mnemonicParsing="false" onAction="#onRegisterButton" prefHeight="40.0" prefWidth="150.0" style="-fx-background-color: #69c0ff; -fx-background-radius: 20;" text="Registration" textFill="WHITE">
+                     <font>
+                        <Font size="16.0" />
+                     </font>
+                  </Button>
+
+               </children>
+            </AnchorPane>
+         </children>
+      </VBox>
+   </children>
+</AnchorPane>
