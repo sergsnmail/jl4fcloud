@@ -1,6 +1,6 @@
 package com.sergsnmail.client.transfer;
 
-import com.sergsnmail.common.message.method.putfile.FileMetadata;
+import com.sergsnmail.common.message.method.common.FileMetadata;
 
 public class FilePackage {
 

@@ -8,7 +8,12 @@ public class Base64Converter {
         return Base64.getDecoder().decode(encodedContent);
     }
 
-    public static String encodeByteToBase64(byte[] decodedContent) {
+    public static String encodeByteToBase64Str(byte[] decodedContent) {
         return Base64.getEncoder().encodeToString(decodedContent);
     }
+
+    public static byte[] encodeByteToBase64Byte(byte[] decodedContent) {
+        return Base64.getEncoder().encode(decodedContent);
+    }
+
 }

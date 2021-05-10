@@ -3,6 +3,7 @@ package com.sergsnmail.common.message.method.putfile;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.sergsnmail.common.message.common.Parameter;
+import com.sergsnmail.common.message.method.common.FileMetadata;
 
 public class PutFilesParam extends Parameter {
 
@@ -19,31 +20,8 @@ public class PutFilesParam extends Parameter {
     @JsonTypeInfo(use=JsonTypeInfo.Id.CLASS, property="@class")
     private FileMetadata metadata;
 
-
-    /*@JsonProperty("filename")
-    private String filename;*/
-
-    /*@JsonProperty("path")
-    private String path;*/
-
     @JsonProperty("body")
     private String body;
-
-    /*public String getFilename() {
-        return filename;
-    }
-
-    public void setFilename(String filename) {
-        this.filename = filename;
-    }
-
-    public String getPath() {
-        return path;
-    }
-
-    public void setPath(String path) {
-        this.path = path;
-    }*/
 
     public String getBody() {
         return body;

@@ -3,6 +3,8 @@ package com.sergsnmail.server;
 import com.sergsnmail.server.input.InputParameter;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.socket.SocketChannel;
+import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
+import io.netty.handler.codec.LengthFieldPrepender;
 import io.netty.handler.codec.LineBasedFrameDecoder;
 import io.netty.handler.codec.json.JsonObjectDecoder;
 import io.netty.handler.codec.string.StringDecoder;
@@ -30,10 +32,12 @@ public class AppBootstrap {
             public void initChannel(SocketChannel ch) throws Exception {
                 UserSession userSession = new UserSession();
                 ch.pipeline().addLast(
-                        new LineBasedFrameDecoder(5000 * 1024,true,false),
+                        new LengthFieldBasedFrameDecoder(5120 * 1024,0,3,0,3), // new
+                        new LengthFieldPrepender(3), // new
+                        //new LineBasedFrameDecoder(5000 * 1024,true,false),
                         new StringDecoder(),
                         new StringEncoder(),
-                        new JsonObjectDecoder(),
+                        //new JsonObjectDecoder(),
                         new MessageDecoder(),
                         new MessageEncoder(),
                         new AuthorizationServerHandler(userSession),

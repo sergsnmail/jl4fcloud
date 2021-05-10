@@ -2,7 +2,7 @@ package com.sergsnmail.client.transfer;
 
 import com.sergsnmail.client.NotifyCallback;
 import com.sergsnmail.client.network.ClientNetwork;
-import com.sergsnmail.common.message.method.putfile.FileMetadata;
+import com.sergsnmail.common.message.method.common.FileMetadata;
 
 import java.nio.file.Path;
 
@@ -28,7 +28,7 @@ public class TransferFileManager {
         newTask.setFilePath(file);
         newTask.setMetadata(fileMetadata);
         Thread worker = new Thread(newTask);
-        worker.setDaemon(true);
+        //worker.setDaemon(true);
         SERVICE.execute(worker);
     }
 

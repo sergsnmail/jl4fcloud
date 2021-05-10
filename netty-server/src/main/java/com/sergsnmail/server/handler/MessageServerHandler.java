@@ -1,5 +1,9 @@
 package com.sergsnmail.server.handler;
 
+import com.sergsnmail.common.message.method.common.FileMetadata;
+import com.sergsnmail.common.message.method.getfileinfo.FileInfoParam;
+import com.sergsnmail.common.message.method.getfileinfo.FileInfoResult;
+import com.sergsnmail.common.message.method.getfileinfo.GetFileInfo;
 import com.sergsnmail.server.db.DbStorage;
 import com.sergsnmail.server.db.file.FileDataSourceImpl;
 import com.sergsnmail.server.db.file.FileServiceImpl;
@@ -81,26 +85,11 @@ public class MessageServerHandler extends SimpleChannelInboundHandler<Message> {
 
     private void handleRequest(Request request) {
         if (request.getMethod() instanceof GetFilesMethod){
-            GetFilesMethod method = (GetFilesMethod) request.getMethod();
-            GetFilesResult result = new GetFilesResult();
+            getFilesHandler(request);
+        }
 
-            User user = userService.getUser(userSession.getUsername());
-            if (user == null){
-                throw new IllegalArgumentException("User error");
-            }
-
-            List<StorageFile> files = fileService.getAllFiles(user);
-            List<String> filename = files.stream()
-                    .map(storageFile -> storageFile.getUser_location() + "\\" + storageFile.getFile_name())
-                    .collect(Collectors.toList());
-
-            result.setFiles(filename);
-            method.setResult(result);
-            Response response = Response.builder()
-                    .setMethod(method)
-                    .build();
-
-            this.ctx.writeAndFlush(response);
+        if (request.getMethod() instanceof GetFileInfo){
+            getFileInfoHandler(request);
         }
 
         if (request.getMethod() instanceof PutFilesMethod){
@@ -108,6 +97,7 @@ public class MessageServerHandler extends SimpleChannelInboundHandler<Message> {
             PutFilesParam param = method.getParameter();
             if (param != null && !param.getBody().isEmpty()){
                 try {
+                    System.out.printf("id: %s, %d/%d [%s]%n ", param.getPackageId(), param.getPartNumber(), param.getTotalNumber(),param.getMetadata().getFileName());
                     String pId = param.getPackageId();
                     String transferFile = transfer.get(pId);
                     if (transferFile == null){
@@ -115,7 +105,7 @@ public class MessageServerHandler extends SimpleChannelInboundHandler<Message> {
                         transfer.put(pId, transferFile);
                     }
 
-                    System.out.println(transferFile);
+                    //System.out.println(transferFile);
                     Files.createDirectories(Paths.get(transferFile).getParent());
                     try(OutputStream writer = new BufferedOutputStream(Files.newOutputStream(Paths.get(transferFile), CREATE, APPEND))){
                         byte[] data = Base64Converter.decodeBase64ToByte(param.getBody());
@@ -145,6 +135,56 @@ public class MessageServerHandler extends SimpleChannelInboundHandler<Message> {
         }
     }
 
+    private void getFilesHandler(Request request) {
+        GetFilesMethod method = (GetFilesMethod) request.getMethod();
+        GetFilesResult result = new GetFilesResult();
+
+        User user = userService.getUser(userSession.getUsername());
+        if (user == null){
+            throw new IllegalArgumentException("User error");
+        }
+
+        List<StorageFile> files = fileService.getAllFiles(user);
+        List<String> filename = files.stream()
+                .map(storageFile -> storageFile.getUser_location() + "\\" + storageFile.getFile_name())
+                .collect(Collectors.toList());
+
+        result.setFiles(filename);
+        method.setResult(result);
+        Response response = Response.builder()
+                .setMethod(method)
+                .build();
+
+        this.ctx.writeAndFlush(response);
+    }
+
+    private void getFileInfoHandler(Request request) {
+        GetFileInfo method = (GetFileInfo) request.getMethod();
+        FileInfoParam param = method.getParameter();
+        if (param != null){
+            User user = userService.getUser(userSession.getUsername());
+            String uploadedFileName = param.getMetadata().getFileName();
+            String uploadedFilePath = param.getMetadata().getFilePath();
+
+            List<StorageFile> files = fileService.getFiles(user, uploadedFileName, uploadedFilePath);
+
+            if (files != null && files.size() == 1){
+                FileMetadata metadata = new FileMetadata();
+                metadata.setFileName(param.getMetadata().getFileName());
+                metadata.setFilePath(param.getMetadata().getFilePath());
+                metadata.setCreated_at(files.get(0).getCreated_at());
+                metadata.setModified_at(files.get(0).getModified_at());
+                FileInfoResult result = new FileInfoResult();
+                result.setMetadata(metadata);
+                method.setResult(result);
+            }
+
+            this.ctx.writeAndFlush(Response.builder()
+                    .setMethod(method)
+                    .build());
+        }
+    }
+
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
         cause.printStackTrace();
@@ -166,6 +206,8 @@ public class MessageServerHandler extends SimpleChannelInboundHandler<Message> {
             for (StorageFile file : files) {
                 if (uploadedFileName.equals(file.getFile_name()) && uploadedFilePath.equals(file.getUser_location())){
                     try {
+                        /*Files.deleteIfExists(Paths.get(file.getStorage()));
+                        fileService.deleteFile(file);*/
                         if (Files.deleteIfExists(Paths.get(file.getStorage()))) {
                             newStorageFilePath = file.getStorage();
                         } else {
@@ -176,22 +218,24 @@ public class MessageServerHandler extends SimpleChannelInboundHandler<Message> {
                     }
                 }
             }
-        } else {
-
-            /**
-             * Регистрируем новый путь файла в базе
-             */
-            newStorageFilePath = appParam.getLocation() + File.separator + genNewStorageFilePath();
-            StorageFile storageFile = StorageFile.builder()
-                    .user(user)
-                    .file_name(param.getMetadata().getFileName())
-                    .created_at(param.getMetadata().getCreated_at())
-                    .modified_at(param.getMetadata().getModified_at())
-                    .user_location(param.getMetadata().getFilePath())
-                    .storage(newStorageFilePath)
-                    .build();
-            fileService.addFile(user, storageFile);
         }
+        return newStorageFilePath == null ? getNewStagedFile(param, user) : newStorageFilePath;
+    }
+
+    /**
+     * Регистрируем новый путь файла в базе
+     */
+    private String getNewStagedFile(PutFilesParam param, User user) {
+        String newStorageFilePath = appParam.getLocation() + File.separator + genNewStorageFilePath();
+        StorageFile storageFile = StorageFile.builder()
+                .user(user)
+                .file_name(param.getMetadata().getFileName())
+                .created_at(param.getMetadata().getCreated_at())
+                .modified_at(param.getMetadata().getModified_at())
+                .user_location(param.getMetadata().getFilePath())
+                .storage(newStorageFilePath)
+                .build();
+        fileService.addFile(user, storageFile);
         return newStorageFilePath;
     }
 

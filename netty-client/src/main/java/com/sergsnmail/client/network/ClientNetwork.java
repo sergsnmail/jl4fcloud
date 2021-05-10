@@ -3,6 +3,8 @@ package com.sergsnmail.client.network;
 import com.sergsnmail.client.network.codec.MessageDecoder;
 import com.sergsnmail.client.network.handler.MessageClientHandler;
 import com.sergsnmail.client.network.codec.MessageEncoder;
+import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
+import io.netty.handler.codec.LengthFieldPrepender;
 import io.netty.handler.codec.LineBasedFrameDecoder;
 import com.sergsnmail.common.message.Request;
 import io.netty.bootstrap.Bootstrap;
@@ -36,10 +38,12 @@ public class ClientNetwork {
                     protected void initChannel(SocketChannel socketChannel) throws Exception {
                         channel = socketChannel;
                         socketChannel.pipeline().addLast(
-                                new LineBasedFrameDecoder(5000 * 1024,true,false),
-                                new StringDecoder(),
-                                new StringEncoder(),
-                                new JsonObjectDecoder(),
+                                new LengthFieldBasedFrameDecoder(5120 * 1024,0,3,0,3), // new
+                                new LengthFieldPrepender(3), // new
+                                //new LineBasedFrameDecoder(5000 * 1024,true,false),
+                                //new StringDecoder(),
+                                //new StringEncoder(),
+                                //new JsonObjectDecoder(),
                                 new MessageDecoder(),
                                 new MessageEncoder(),
                                 messageHandler);

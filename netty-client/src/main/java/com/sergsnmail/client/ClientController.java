@@ -1,7 +1,14 @@
 package com.sergsnmail.client;
 
+import com.sergsnmail.client.transfer.v1.TransferEvent;
+import com.sergsnmail.client.transfer.v1.TransferListener;
+import com.sergsnmail.client.transfer.v1.TransferMachine;
+import com.sergsnmail.client.transfer.v1.TransferTask;
 import com.sergsnmail.client.watcher.FileWatcher;
-import com.sergsnmail.common.message.method.putfile.FileMetadata;
+import com.sergsnmail.common.message.method.common.FileMetadata;
+import com.sergsnmail.common.message.method.getfileinfo.FileInfoParam;
+import com.sergsnmail.common.message.method.getfileinfo.FileInfoResult;
+import com.sergsnmail.common.message.method.getfileinfo.GetFileInfo;
 import javafx.fxml.FXML;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
@@ -26,13 +33,12 @@ import java.net.URL;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.ResourceBundle;
+import java.util.*;
+import java.time.Instant;
 
-public class ClientController implements Initializable, NetworkListener, NotifyCallback, FileListener {
+public class ClientController implements Initializable, NetworkListener, NotifyCallback, FileListener, TransferListener {
 
     @FXML
     public ProgressBar transferProgress;
@@ -43,16 +49,17 @@ public class ClientController implements Initializable, NetworkListener, NotifyC
     @FXML
     private TextArea fileList;
 
-    private ClientNetwork clientNetwork;
-    private TransferFileManager transferFileManager;
+    private ClientNetwork network;
+//    private TransferFileManager transferFileManager;
+    private TransferMachine transferMachine;
     private AppCallback appCallback;
     private FileWatcher fileWatcher;
-    //private UserSession session;
-
-    //private String DEFAULT_LOCAL_FOLDER = "e:\\temp\\watch\\";
     private Path localFolder;
 
-    private List<String> files = new ArrayList<>();
+    //private List<String> files = new ArrayList<>();
+    private Set<Path> files = new HashSet<>();
+    private Set<Path> filesFromServer = new HashSet<>();
+
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
@@ -82,10 +89,14 @@ public class ClientController implements Initializable, NetworkListener, NotifyC
 
     public void init(AppCallback callable) {
         this.appCallback = callable;
-        this.clientNetwork = callable.getNetwork();
-        this.clientNetwork.addChannelListener(this);
-        transferFileManager = new TransferFileManager(this.clientNetwork);
-        transferFileManager.setNotifyCallback(this);
+        this.network = callable.getNetwork();
+        this.network.addChannelListener(this);
+        //transferFileManager = new TransferFileManager(this.clientNetwork);
+        //transferFileManager.setNotifyCallback(this);
+
+        transferMachine = new TransferMachine(this.network);
+        transferMachine.addListener(this);
+        transferMachine.start();
         //fileWatcher = new FileWatcher();
     }
 
@@ -105,69 +116,92 @@ public class ClientController implements Initializable, NetworkListener, NotifyC
         Platform.runLater(() -> processingMessage(msg));
     }
 
-    private void processingMessage(Message msg){
+    private void processingMessage(Message msg) {
 
-        if(msg instanceof Request){
+        /**
+         * Обработка запросов с сервера
+         */
+        if (msg instanceof Request) {
             // обработка запроса
         }
 
-        if(msg instanceof Response){
-            // обработка ответа
+        /**
+         * Обработка ответов с сервера
+         */
+        if (msg instanceof Response) {
             Response response = (Response) msg;
-            if (response.getMethod() instanceof GetFilesMethod){
+            if (response.getMethod() instanceof GetFilesMethod) {
                 getFileResponseHandler(response, (GetFilesMethod) response.getMethod());
+            }
+            if (response.getMethod() instanceof GetFileInfo){
+                getFileInfoHandler(response, (GetFileInfo) response.getMethod());
             }
         }
     }
 
     private void getFileResponseHandler(Response response, GetFilesMethod method) {
         GetFilesResult result = method.getResult();
-        if (result != null && result.getFiles() != null && result.getFiles().size() > 0){
+        if (result != null && result.getFiles() != null && result.getFiles().size() > 0) {
             this.fileList.clear();
             for (String file : result.getFiles()) {
+                System.out.println(Paths.get(file));
+                filesFromServer.add(Paths.get(file));
                 this.fileList.appendText(file + "\n");
             }
         }
     }
 
-    public void OnPressedAction(ActionEvent actionEvent) {
+    private void getFileInfoHandler(Response response, GetFileInfo method) {
+        FileInfoResult result = method.getResult();
+        FileInfoParam param = method.getParameter();
+        Path localFilePath = getLocalPath(Paths.get(param.getMetadata().getFilePath() + param.getMetadata().getFileName()));
 
+        if (result == null) {
+            sendFile(localFilePath);
+        } else if (result != null && files.contains(localFilePath)) {
+            FileMetadata localMetadata = createMetadata(localFilePath);
+            FileMetadata serverMetadata = result.getMetadata();
+            if (serverMetadata != null && localMetadata != null) {
+                Instant localModified = Instant.parse(localMetadata.getModified_at());
+                Instant serverModified = Instant.parse(serverMetadata.getModified_at());
+                if (localModified.isAfter(serverModified)){
+                    sendFile(localFilePath);
+                }
+            }
+        }
+        files.remove(localFilePath);
+    }
+
+    private Path getLocalPath(Path path) {
+        return Paths.get(localFolder + File.separator + path);
+    }
+
+    private Path getRelativePath(Path path){
+        return Paths.get(path.getParent().toString().replace(localFolder.toString(), ""));
+    }
+
+    public void OnPressedAction(ActionEvent actionEvent) {
         try {
             if (localFolder == null) {
                 localFolder = getLocalFolder();
             }
             if (fileWatcher == null) {
                 fileWatcher = new FileWatcher();
-                fileWatcher.registerDir(localFolder);
+                fileWatcher.register(localFolder);
                 fileWatcher.addListener(this);
                 fileWatcher.start();
+                fileWatcher.registerAll(localFolder);
+                //registerDirAndSubDirs(localFolder);
             }
+
+            Request getFilesRequest = Request.builder()
+                    .setMethod(GetFilesMethod.builder().build())
+                    .build();
+
+            network.sendCommand(getFilesRequest);
         } catch (Exception e) {
             e.printStackTrace();
         }
-
-        /*else {
-
-            String fileName1 = "VID_20200927_160322.mp4";
-            String fileName2 = "Старикам тут не место.2007.BDRip.1080p.Rus.mkv";
-            String fileName3 = "My_speech.txt";
-
-            transferFileManager = new TransferFileManager(this.clientNetwork);
-            transferFileManager.setNotifyCallback(this);
-
-            List<String> filesForTransfer = new ArrayList<>();
-            filesForTransfer.add(localFolder + File.separator + fileName1);
-            filesForTransfer.add(localFolder + File.separator + fileName2);
-            filesForTransfer.add(localFolder + File.separator + fileName3);
-
-            for (String file : filesForTransfer) {
-                Path filePath = Paths.get(file);
-                FileMetadata metadata = new FileMetadata();
-                metadata.setFileName(filePath.getFileName().toString());
-                metadata.setFilePath(filePath.getParent().toString());
-                transferFileManager.transferFile(filePath, metadata);
-            }
-        }*/
     }
 
     private Path getLocalFolder() {
@@ -189,43 +223,72 @@ public class ClientController implements Initializable, NetworkListener, NotifyC
     }
 
     private void handleNotify(Object notifyObj) {
-        if (notifyObj instanceof TransferFileManager.TransferNotifyObject){
+        if (notifyObj instanceof TransferFileManager.TransferNotifyObject) {
             TransferFileManager.TransferNotifyObject nObj = (TransferFileManager.TransferNotifyObject) notifyObj;
             fileNameLabel.setText(nObj.getFileName());
-            legendLabel.setText(nObj.getCurrentNumber() + " of "+ nObj.getTotalNumber());
+            legendLabel.setText(nObj.getCurrentNumber() + " of " + nObj.getTotalNumber());
             double currNum = nObj.getCurrentNumber();
             double totalNum = nObj.getTotalNumber();
-            double currProgress = currNum/totalNum;
+            double currProgress = currNum / totalNum;
             transferProgress.setProgress(currProgress);
         }
     }
 
     public void close() {
-        System.out.println("Start transfer shutdown");
-        if (transferFileManager != null){
-            transferFileManager.transferShutdown();
+        System.out.println("Start transfer machine shutdown");
+        fileWatcher.printWatchable();
+//        if (transferFileManager != null) {
+//            transferFileManager.transferShutdown();
+//        }
+        if (transferMachine != null){
+            transferMachine.shutdown();
         }
     }
 
     @Override
     public void createEvent(Path path) {
-        if (Files.isDirectory(path)){
-            try {
-                List<File> subfolder = new ArrayList<>();
-                collectSubFolder(path.toFile(), subfolder);
-                for (File path1 : subfolder) {
-                    fileWatcher.registerDir(path1.toPath());
-                    System.out.println("Add watching dir: " + path);
-                }
-                fileWatcher.registerDir(path);
+        System.out.println("[createEvent]" + path);
+        System.out.println(localFolder);
+        System.out.println(localFolder.relativize(path));
 
-                System.out.println("Add watching dir: " + path);
+        getFileInfoFromServer(path);
+        //if(filesFromServer.contains())
+        //files.add(path);
+
+        //sendFile(path);
+    }
+
+    private void getFileInfoFromServer(Path path) {
+        files.add(path);
+        FileInfoParam fileInfoParam = new FileInfoParam();
+
+        fileInfoParam.setMetadata(createMetadata(path));
+        Request getFilesStateRequest = Request.builder()
+                .setMethod(GetFileInfo.builder()
+                        .setParameter(fileInfoParam)
+                        .build())
+                .build();
+        network.sendCommand(getFilesStateRequest);
+    }
+
+    private void registerDirAndSubDirs(Path dir){
+        try {
+            fileWatcher.register(dir);
+            //System.out.println("Add watching dir: " + dir);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        /*List<File> subDirs = new ArrayList<>();
+        collectSubFolder(dir.toFile(), subDirs);
+        for (File subDir : subDirs) {
+            try {
+                fileWatcher.registerDir(subDir.toPath());
+                //System.out.println("Add watching dir: " + subDir);
             } catch (IOException e) {
                 e.printStackTrace();
             }
-        } else {
-            sendFile(path);
-        }
+        }*/
     }
 
     private void collectSubFolder(File dir, List<File> dirList) {
@@ -240,13 +303,28 @@ public class ClientController implements Initializable, NetworkListener, NotifyC
 
     @Override
     public void deleteEvent(Path path) {
+        System.out.println("[deleteEvent]" + path);
     }
 
     @Override
     public void modifyEvent(Path path) {
+        System.out.println("[modifyEvent]" + path);
+
+        if (files.contains("\\" + localFolder.relativize(path))){
+            // файл уже отправлен в этой сесии,
+            // получить информацию на сервере по данному файлу
+        } else {
+            files.add(path);
+            //sendFile(path);
+        }
     }
 
-    public void sendFile(Path filePath){
+    public void sendFile(Path file) {
+        transferMachine.addFile(new TransferTask(file,createMetadata(file)));
+    }
+
+    private FileMetadata createMetadata(Path file){
+        FileMetadata metadata = null;
         try {
             /**
              * Определяем путь относительно корневой директории
@@ -255,44 +333,40 @@ public class ClientController implements Initializable, NetworkListener, NotifyC
              *  Корневая диерктория - C:\temp
              *  Путь относительно корневой директории - \folder
              */
-            String localPath = filePath.getParent().toString().replace(localFolder.toString(), "");
+            //String localPath = file.getParent().toString().replace(localFolder.toString(), "");
+            String localPath = getRelativePath(file).toString();
 
             /**
              * Собираем метаданыне файла
              */
-            BasicFileAttributes attr = Files.readAttributes(filePath, BasicFileAttributes.class);
+            BasicFileAttributes attr = Files.readAttributes(file, BasicFileAttributes.class);
 
-            FileMetadata metadata = new FileMetadata();
-            metadata.setFileName(filePath.getFileName().toString());
+            metadata = new FileMetadata();
+            metadata.setFileName(file.getFileName().toString());
             metadata.setCreated_at(attr.creationTime().toString());
             metadata.setModified_at(attr.lastModifiedTime().toString());
             metadata.setFilePath(localPath);
-            metadata.setSize(Files.size(filePath));
-            transferFileManager.transferFile(filePath, metadata);
-        }catch (Exception e){
+            metadata.setSize(Files.size(file));
+        } catch (Exception e){
+
         }
-
+        return metadata;
     }
-    /*else {
 
-            String fileName1 = "VID_20200927_160322.mp4";
-            String fileName2 = "Старикам тут не место.2007.BDRip.1080p.Rus.mkv";
-            String fileName3 = "My_speech.txt";
+    @Override
+    public void onTransfer(TransferEvent event) {
+        Platform.runLater(() -> {
+            transferHandle(event);
+        });
+    }
 
-            transferFileManager = new TransferFileManager(this.clientNetwork);
-            transferFileManager.setNotifyCallback(this);
+    private void transferHandle(TransferEvent event) {
+        fileNameLabel.setText(event.getFileName());
+        legendLabel.setText(event.getCurrentNumber() + " of " + event.getTotalNumber());
+        double currNum = event.getCurrentNumber();
+        double totalNum = event.getTotalNumber();
+        double currProgress = currNum / totalNum;
+        transferProgress.setProgress(currProgress);
+    }
 
-            List<String> filesForTransfer = new ArrayList<>();
-            filesForTransfer.add(localFolder + File.separator + fileName1);
-            filesForTransfer.add(localFolder + File.separator + fileName2);
-            filesForTransfer.add(localFolder + File.separator + fileName3);
-
-            for (String file : filesForTransfer) {
-                Path filePath = Paths.get(file);
-                FileMetadata metadata = new FileMetadata();
-                metadata.setFileName(filePath.getFileName().toString());
-                metadata.setFilePath(filePath.getParent().toString());
-                transferFileManager.transferFile(filePath, metadata);
-            }
-        }*/
 }

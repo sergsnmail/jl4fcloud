@@ -7,7 +7,7 @@ import com.sergsnmail.common.json.Base64Converter;
 import com.sergsnmail.common.message.Request;
 import com.sergsnmail.common.message.Response;
 import com.sergsnmail.common.message.common.Message;
-import com.sergsnmail.common.message.method.putfile.FileMetadata;
+import com.sergsnmail.common.message.method.common.FileMetadata;
 import com.sergsnmail.common.message.method.putfile.PutFilesMethod;
 import com.sergsnmail.common.message.method.putfile.PutFilesParam;
 import com.sergsnmail.common.message.method.putfile.PutFilesResult;
@@ -82,7 +82,11 @@ public class TransferFileTask implements Runnable, NetworkListener {
         param.setPartNumber(filePackage.getPackageNumber());
         param.setTotalNumber(filePackage.getTotalPackageCount());
         param.setMetadata(filePackage.getFileMetadata());
-        param.setBody(Base64Converter.encodeByteToBase64(filePackage.getBody()));
+        //param.setBody(Base64Converter.encodeByteToBase64Str(filePackage.getBody()));
+        param.setBody(Base64Converter.encodeByteToBase64Str(new byte[]{15}));
+        //param.setBytebody(Base64Converter.encodeByteToBase64Str(filePackage.getBody()));
+
+        System.out.printf("id: %s, %d/%d [%s]%n ", filePackage.getPackageId(), filePackage.getPackageNumber(), filePackage.getTotalPackageCount(),filePackage.getFileMetadata().getFileName());
 
         PutFilesMethod putMethod = PutFilesMethod.builder()
                 .setParameter(param)

@@ -1,4 +1,4 @@
-package com.sergsnmail.common.message.method.putfile;
+package com.sergsnmail.common.message.method.common;
 
 public class FileMetadata {
     private String fileName;
