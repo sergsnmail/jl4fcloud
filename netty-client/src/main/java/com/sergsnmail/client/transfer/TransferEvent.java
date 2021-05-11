@@ -1,5 +1,8 @@
-package com.sergsnmail.client.transfer.v1;
+package com.sergsnmail.client.transfer;
 
+/**
+ * Класс хранящий данные конкретной предачи
+ */
 public class TransferEvent {
     private String fileName;
     private int currentNumber;

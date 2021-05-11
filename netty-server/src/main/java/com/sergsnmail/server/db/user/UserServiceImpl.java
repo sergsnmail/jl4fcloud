@@ -2,6 +2,7 @@ package com.sergsnmail.server.db.user;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.LocalDateTime;
 
 public class UserServiceImpl {
 
@@ -25,10 +26,14 @@ public class UserServiceImpl {
             throw new IllegalArgumentException();
         }
 
-        User newUser = User.builder().username(username)
-                    .email(email)
-                    .hashedPass(getHashedPassword(pass))
-                    .build();
+        User newUser = User.builder()
+                .userId(0)
+                .created_at("")
+                .updated_at("")
+                .username(username)
+                .email(email)
+                .hashedPass(getHashedPassword(pass))
+                .build();
         try{
            userDS.createUser(newUser);
         }catch (Exception e){

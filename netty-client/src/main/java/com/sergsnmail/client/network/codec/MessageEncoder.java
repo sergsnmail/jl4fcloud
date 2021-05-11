@@ -9,14 +9,7 @@ import com.sergsnmail.common.message.common.Message;
 
 import java.util.List;
 
-public class MessageEncoder extends MessageToByteEncoder<Message> { //MessageToMessageEncoder
-
-//    @Override
-//    protected void encode(ChannelHandlerContext ctx, Message msg, List<Object> out) {
-//        //out.add(JSONConverter.object2StringJson(msg));
-//        out.add(JSONConverter.object2ByteJson(msg));
-//    }
-
+public class MessageEncoder extends MessageToByteEncoder<Message> {
     @Override
     protected void encode(ChannelHandlerContext ctx, Message msg, ByteBuf out) throws Exception {
         out.writeBytes(JSONConverter.object2ByteJson(msg));

@@ -18,7 +18,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <javafx.version>16</javafx.version>
         <javafx.maven.plugin.version>0.0.6</javafx.maven.plugin.version>
-        <javafx.executor.path>c:\java\corretto-11.0.10\bin\java.exe</javafx.executor.path>
+        <javafx.executor.path>c:\java\corretto-16.0.1\bin\java.exe</javafx.executor.path>
 
     </properties>
 

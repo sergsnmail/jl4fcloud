@@ -23,6 +23,10 @@ public class MessageClientHandler extends SimpleChannelInboundHandler<Message> {
         ctx.close();
     }
 
+    /**
+     * Рассылем сообщение всем слушателям
+     * @param msg
+     */
     private void fireNotify(Message msg){
         for (NetworkListener listener: listeners) {
             listener.messageReceive(msg);

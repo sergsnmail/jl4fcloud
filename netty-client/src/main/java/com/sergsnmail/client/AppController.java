@@ -50,6 +50,9 @@ public class AppController implements AppCallback {
         });
     }
 
+    /**
+     * Обработчик закрытия приложения
+     */
     private void closeApp() {
         try {
             this.network.close();

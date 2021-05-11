@@ -1,4 +1,4 @@
-package com.sergsnmail.client.transfer.v1;
+package com.sergsnmail.client.transfer;
 
 public enum TransferResult {
     RECEIVED,

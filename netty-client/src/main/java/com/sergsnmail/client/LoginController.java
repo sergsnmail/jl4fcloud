@@ -42,11 +42,6 @@ public class LoginController implements Initializable, NetworkListener {
         this.clientNetwork.addChannelListener(this);
     }
 
-    /*public void setNetwork(ClientNetworkCallable networkCallable) {
-        this.clientNetwork = networkCallable.getNetwork();
-        this.clientNetwork.addChannelListener(this);
-    }*/
-
     @Override
     public void messageReceive(Message msg) {
         if (msg instanceof Response) {
@@ -66,20 +61,6 @@ public class LoginController implements Initializable, NetworkListener {
                     callable.openMainWindowCallback();
                 }
             }
-            /*Response msgAuthResp = (Response) msg;
-            AuthResult authResult = msgAuthResp.getMethod().getResultImpl(AuthResult.class);
-            AuthParam authParam = msgAuthResp.getMethod().getParamImpl(AuthParam.class);
-
-            if ("/auth".equals(msgAuthResp.getMethod().getName())) {
-                if (authResult != null && authResult.isAuth()) {
-                    callable.openMainWindowCallback(new UserSession(authParam.getUsername()));
-                }
-            } else if ("/register".equals(msgAuthResp.getMethod().getName())) {
-                RegResult regResult = msgAuthResp.getMethod().getResultImpl(RegResult.class);
-                if (regResult != null && regResult.isAuth()) {
-                    callable.openMainWindowCallback(new UserSession(authParam.getUsername()));
-                }
-            }*/
         }
     }
 

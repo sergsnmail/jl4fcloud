@@ -1,9 +1,7 @@
-package com.sergsnmail.client.transfer.v1;
+package com.sergsnmail.client.transfer;
 
 import com.sergsnmail.client.network.ClientNetwork;
 import com.sergsnmail.client.network.NetworkListener;
-import com.sergsnmail.client.transfer.FilePackage;
-import com.sergsnmail.client.transfer.PackageCollection;
 import com.sergsnmail.common.json.Base64Converter;
 import com.sergsnmail.common.message.Request;
 import com.sergsnmail.common.message.Response;
@@ -15,6 +13,9 @@ import com.sergsnmail.common.message.method.putfile.PutFilesResult;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedDeque;
 
+/**
+ * Класс представляет рабочий поток для передачи файла
+ */
 public class TransferWorker implements Runnable, NetworkListener {
     private final ClientNetwork network;
     private final ConcurrentLinkedDeque<TransferTask> tasks;
@@ -37,6 +38,9 @@ public class TransferWorker implements Runnable, NetworkListener {
         try {
             while (!Thread.currentThread().isInterrupted()) {
                 while (tasks.size() == 0 && !Thread.currentThread().isInterrupted()) {
+                    /**
+                     * если заданий нет, то поток спит
+                     */
                     synchronized (mon) {
                         System.out.println("worker sleep");
                         mon.wait();
@@ -57,32 +61,6 @@ public class TransferWorker implements Runnable, NetworkListener {
                                 createTransferEvent();
                             }
                         }
-
-
-
-//                        /**
-//                         * Отправляем первый пакет
-//                         */
-//                        currPackage = packageCollection.next();
-//                        currPackage.setReceived(false);
-//                        currPackage.setFileMetadata(task.getMetadata());
-//                        sendPackage(currPackage);
-//
-//                        /**
-//                         * отправляем остальные пакеты
-//                         */
-//                        while (!Thread.currentThread().isInterrupted()) {
-//                            if (currPackage != null && currPackage.isReceived()) {
-//                                if (packageCollection.hasNext()) {
-//                                    currPackage = packageCollection.next();
-//                                    currPackage.setReceived(false);
-//                                    currPackage.setFileMetadata(task.getMetadata());
-//                                    sendPackage(currPackage);
-//                                } else {
-//                                    break;
-//                                }
-//                            }
-//                        }
                         System.out.println("Transfer complete");
                     }
                 }

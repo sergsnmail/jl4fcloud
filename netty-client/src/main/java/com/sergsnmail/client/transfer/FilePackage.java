@@ -9,7 +9,6 @@ public class FilePackage {
     private int totalPackageCount;
     private byte[] body;
     private FileMetadata fileMetadata;
-    //private AtomicBoolean isReceived = new AtomicBoolean(false);
     private boolean isReceived = false;
 
     public int getPackageNumber() {
@@ -35,30 +34,6 @@ public class FilePackage {
     public void setBody(byte[] body) {
         this.body = body;
     }
-
-//    public String getFileName() {
-//        return fileName;
-//    }
-//
-//    public void setFileName(String fileName) {
-//        this.fileName = fileName;
-//    }
-//
-//    public String getFilePath() {
-//        return filePath;
-//    }
-//
-//    public void setFilePath(String filePath) {
-//        this.filePath = filePath;
-//    }
-
-//    public AtomicBoolean isReceived() {
-//        return isReceived;
-//    }
-//
-//    public void setReceived(boolean received) {
-//        isReceived.set(received);
-//    }
 
     public boolean isReceived() {
         return isReceived;

@@ -1,4 +1,9 @@
 package com.sergsnmail.client.transfer;
+/**
+ * Класс для формирования пакетов для отправки
+ * Разбивает воходящий файл на сегменты размером, указанным в
+ * константе DEFAULT_PACKAGE_SIZE
+ */
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -12,7 +17,7 @@ import java.util.UUID;
 
 public class PackageCollection implements Iterator<FilePackage> {
 
-    private int DEFAULT_PACKAGE_SIZE = 3000 * 1024;
+    private int DEFAULT_PACKAGE_SIZE = 3072 * 1024;
     private final String packageId;
     private final Path filePath;
     private int currentPackage = 0;
@@ -22,15 +27,18 @@ public class PackageCollection implements Iterator<FilePackage> {
     private FileChannel inChannel;
     private RandomAccessFile aFile;
 
-    public PackageCollection(Path filePath){//}, FileMetadata fileMetadata) {
+    public PackageCollection(Path filePath){
         this.filePath = filePath;
-        this.packageId = UUID.randomUUID().toString();//(filePath.toString()).toString();
+        this.packageId = UUID.randomUUID().toString();
         init();
     }
 
     private void init(){
         try {
             boolean isLocked = false;
+            /**
+             * ожидание разблокировки файла
+             */
             while(!isLocked){
                 try{
                     aFile = new RandomAccessFile(String.valueOf(this.filePath), "r");
@@ -44,6 +52,10 @@ public class PackageCollection implements Iterator<FilePackage> {
                 currentPackage = -1;
                 closeFile();
             }
+
+            /**
+             * Определяем количество пакетов для отправки
+             */
             if (fileSize > DEFAULT_PACKAGE_SIZE) {
                 this.totalPackage = (int) (fileSize % DEFAULT_PACKAGE_SIZE > 0 ? (fileSize/DEFAULT_PACKAGE_SIZE) + 1: fileSize/DEFAULT_PACKAGE_SIZE);
             }
@@ -66,6 +78,10 @@ public class PackageCollection implements Iterator<FilePackage> {
         }
     }
 
+    /**
+     * Метод возвращает true если еще есть пакеты для отправки
+     * @return
+     */
     @Override
     public boolean hasNext() {
         if (!(currentPackage != -1 && currentPackage < totalPackage)){
@@ -74,6 +90,10 @@ public class PackageCollection implements Iterator<FilePackage> {
         return currentPackage != -1 && currentPackage < totalPackage;
     }
 
+    /**
+     * Получение следующей порции байтов файла
+     * @return
+     */
     @Override
     public FilePackage next() {
         FilePackage nextPackage = null;

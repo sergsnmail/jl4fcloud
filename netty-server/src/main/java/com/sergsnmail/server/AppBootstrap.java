@@ -34,10 +34,6 @@ public class AppBootstrap {
                 ch.pipeline().addLast(
                         new LengthFieldBasedFrameDecoder(5120 * 1024,0,3,0,3), // new
                         new LengthFieldPrepender(3), // new
-                        //new LineBasedFrameDecoder(5000 * 1024,true,false),
-                        new StringDecoder(),
-                        new StringEncoder(),
-                        //new JsonObjectDecoder(),
                         new MessageDecoder(),
                         new MessageEncoder(),
                         new AuthorizationServerHandler(userSession),

@@ -39,11 +39,7 @@ public class ClientNetwork {
                         channel = socketChannel;
                         socketChannel.pipeline().addLast(
                                 new LengthFieldBasedFrameDecoder(5120 * 1024,0,3,0,3), // new
-                                new LengthFieldPrepender(3), // new
-                                //new LineBasedFrameDecoder(5000 * 1024,true,false),
-                                //new StringDecoder(),
-                                //new StringEncoder(),
-                                //new JsonObjectDecoder(),
+                                new LengthFieldPrepender(3),
                                 new MessageDecoder(),
                                 new MessageEncoder(),
                                 messageHandler);

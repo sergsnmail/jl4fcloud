@@ -1,4 +1,4 @@
-package com.sergsnmail.client.transfer.v1;
+package com.sergsnmail.client.transfer;
 
 import com.sergsnmail.client.network.ClientNetwork;
 
@@ -44,8 +44,8 @@ public class TransferMachine {
     }
 
     public void shutdown(){
+        SERVICE.shutdownNow();
         synchronized (mon) {
-            SERVICE.shutdownNow();
             mon.notifyAll();
         }
     }

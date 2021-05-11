@@ -84,14 +84,24 @@ public class MessageServerHandler extends SimpleChannelInboundHandler<Message> {
     }
 
     private void handleRequest(Request request) {
+
+        /**
+         * Обработка запроса на получения списка файлов пользователя
+         */
         if (request.getMethod() instanceof GetFilesMethod){
             getFilesHandler(request);
         }
 
+        /**
+         * Обработка запроса инофрмации по переданному файлу
+         */
         if (request.getMethod() instanceof GetFileInfo){
             getFileInfoHandler(request);
         }
 
+        /**
+         * Обработка загрузки пакетов файлов
+         */
         if (request.getMethod() instanceof PutFilesMethod){
             PutFilesMethod method = (PutFilesMethod) request.getMethod();
             PutFilesParam param = method.getParameter();
@@ -105,7 +115,6 @@ public class MessageServerHandler extends SimpleChannelInboundHandler<Message> {
                         transfer.put(pId, transferFile);
                     }
 
-                    //System.out.println(transferFile);
                     Files.createDirectories(Paths.get(transferFile).getParent());
                     try(OutputStream writer = new BufferedOutputStream(Files.newOutputStream(Paths.get(transferFile), CREATE, APPEND))){
                         byte[] data = Base64Converter.decodeBase64ToByte(param.getBody());
@@ -135,6 +144,10 @@ public class MessageServerHandler extends SimpleChannelInboundHandler<Message> {
         }
     }
 
+    /**
+     * Обработчик запроса списка файлов
+     * @param request
+     */
     private void getFilesHandler(Request request) {
         GetFilesMethod method = (GetFilesMethod) request.getMethod();
         GetFilesResult result = new GetFilesResult();
@@ -158,6 +171,10 @@ public class MessageServerHandler extends SimpleChannelInboundHandler<Message> {
         this.ctx.writeAndFlush(response);
     }
 
+    /**
+     * Обработчик запроса получения информации по файлу
+     * @param request
+     */
     private void getFileInfoHandler(Request request) {
         GetFileInfo method = (GetFileInfo) request.getMethod();
         FileInfoParam param = method.getParameter();
@@ -239,10 +256,11 @@ public class MessageServerHandler extends SimpleChannelInboundHandler<Message> {
         return newStorageFilePath;
     }
 
-    /*private void deleteFileInStorage(Path path) throws IOException {
-        Files.delete(path);
-    }*/
-
+    /**
+     * Создание пути хранения файла на сервере для равномерного распределения по папкам в
+     * файловой системе
+     * @return
+     */
     private String genNewStorageFilePath(){
         String uploadFileName = UUID.randomUUID().toString();
 

@@ -38,6 +38,9 @@ public class AuthorizationServerHandler extends ChannelInboundHandlerAdapter {
         System.out.println(HANDLER_ID + " handler " + req.toString());
         Method method = req.getMethod();
 
+        /**
+         * Обработка запроса аутентификации
+         */
         if (method instanceof AuthMethod){
             AuthParam authParam = ((AuthMethod) method).getParameter();
             if (authParam != null){
@@ -63,15 +66,21 @@ public class AuthorizationServerHandler extends ChannelInboundHandlerAdapter {
                     ctx.writeAndFlush(resp);
                 }
             }
-        } else if (method instanceof RegMethod){
+        }
+        /**
+         * Обработка запроса регистрации нового пользователя
+         */
+        else if (method instanceof RegMethod){
             RegParam regParam = ((RegMethod) method).getParameter();
             if (regParam != null){
                 RegResult regResult = new RegResult();
+                method.setResult(regResult);
                 Response resp = Response.builder()
                         .setMethod(method)
                         .build();
                 User newUser = userService.registerUser(regParam.getUsername(),"example@example.com",regParam.getPassword());
                 if (newUser != null) {
+                    System.out.printf("New user '%s' registered\n", newUser.getUsername());
                     regResult.setAuth(true);
                     userSession.setUserid(newUser.getUserId());
                     userSession.setUsername(newUser.getUsername());
@@ -87,55 +96,6 @@ public class AuthorizationServerHandler extends ChannelInboundHandlerAdapter {
         } else {
             throw new IllegalArgumentException("Unknown request");
         }
-        /*if ("/auth".equals(method.getName())){
-            AuthParam authParam = method.getParamImpl(AuthParam.class);
-            if (authParam != null){
-                String username = authParam.getUsername();
-                String pass = authParam.getPassword();
-
-                AuthResult authResult = new AuthResult();
-                Response resp = Response.builder()
-                        .setMethod(method)
-                        .setMethodResult(authResult)
-                        .build();
-
-                if (userService.authorizedUser(username, pass)){ // is authorized
-                    authResult.setAuth(true);
-
-                    UserSession session = new UserSession(username);
-
-                    ctx.writeAndFlush(resp);
-                    ctx.channel().pipeline().remove(this);
-                } else {
-                    authResult.setAuth(false);
-                    authResult.setMessage("User not authorized");
-                    ctx.writeAndFlush(resp);
-                }
-            }
-        } else if ("/register".equals(method.getName())) {
-            RegParam regParam = method.getParamImpl(RegParam.class);
-            if (regParam == null){
-                throw new NullPointerException("param must be non-null but is null");
-            }
-
-            User newUser = userService.registerUser(regParam.getUsername(),"example@example.com",regParam.getPassword());
-            RegResult regResult = new RegResult();
-            Response resp = Response.builder()
-                    .setMethod(method)
-                    .setMethodResult(regResult)
-                    .build();
-            if (newUser == null) {
-                regResult.setAuth(true);
-                ctx.writeAndFlush(resp);
-                ctx.channel().pipeline().remove(this);
-            } else {
-                regResult.setAuth(false);
-                regResult.setMessage("Error while registered new User");
-                ctx.writeAndFlush(resp);
-            }
-        } else {
-            throw new IllegalArgumentException("Unknown auth request");
-        }*/
     }
 
     @Override
