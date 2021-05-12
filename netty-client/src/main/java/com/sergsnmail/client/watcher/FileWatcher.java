@@ -23,12 +23,13 @@ public class FileWatcher implements Runnable {
     }
 
     public void register(Path path) throws IOException {
+        System.out.println("Register" + path);
         WatchKey key =  path.register(this.watchService, ENTRY_CREATE, ENTRY_MODIFY, ENTRY_DELETE );
         keys.put(key, path);
     }
 
     public void registerAll(final Path start) throws IOException {
-        // register directory and sub-directories
+        register(start);
         Files.walkFileTree(start, new SimpleFileVisitor<Path>() {
             @Override
             public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs)

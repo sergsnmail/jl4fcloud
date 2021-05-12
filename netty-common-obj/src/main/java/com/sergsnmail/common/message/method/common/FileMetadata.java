@@ -3,6 +3,7 @@ package com.sergsnmail.common.message.method.common;
 public class FileMetadata {
     private String fileName;
     private String filePath;
+    private String fileRelativePath;
     private String created_at;
     private String modified_at;
     private long size;
@@ -45,5 +46,25 @@ public class FileMetadata {
 
     public void setModified_at(String modified_at) {
         this.modified_at = modified_at;
+    }
+
+    public String getFileRelativePath() {
+        return fileRelativePath;
+    }
+
+    public void setFileRelativePath(String fileRelativePath) {
+        this.fileRelativePath = fileRelativePath;
+    }
+
+    @Override
+    public String toString() {
+        return "FileMetadata{" +
+                "fileName='" + fileName + '\'' +
+                ", filePath='" + filePath + '\'' +
+                ", fileRelativePath='" + fileRelativePath + '\'' +
+                ", created_at='" + created_at + '\'' +
+                ", modified_at='" + modified_at + '\'' +
+                ", size=" + size +
+                '}';
     }
 }

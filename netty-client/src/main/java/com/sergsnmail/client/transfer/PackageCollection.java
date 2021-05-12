@@ -11,13 +11,15 @@ import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.Path;
+import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.UUID;
+import java.util.concurrent.TimeoutException;
 
 public class PackageCollection implements Iterator<FilePackage> {
 
-    private int DEFAULT_PACKAGE_SIZE = 3072 * 1024;
+    private int DEFAULT_PACKAGE_SIZE = 3 * 1024 * 1024;
     private final String packageId;
     private final Path filePath;
     private int currentPackage = 0;
@@ -27,6 +29,8 @@ public class PackageCollection implements Iterator<FilePackage> {
     private FileChannel inChannel;
     private RandomAccessFile aFile;
 
+    private long DEFAULT_TIMEOUT = 60 * 1000;
+
     public PackageCollection(Path filePath){
         this.filePath = filePath;
         this.packageId = UUID.randomUUID().toString();
@@ -35,17 +39,24 @@ public class PackageCollection implements Iterator<FilePackage> {
 
     private void init(){
         try {
-            boolean isLocked = false;
+
             /**
              * ожидание разблокировки файла
              */
-            while(!isLocked){
+            long startTime = System.currentTimeMillis();
+            long currentTime;
+            while(true){
                 try{
-                    aFile = new RandomAccessFile(String.valueOf(this.filePath), "r");
-                    isLocked = true;
+                    aFile = new RandomAccessFile(this.filePath.toString(), "r");
+                    break;
                 } catch (Exception e){
+                    currentTime = System.currentTimeMillis();
+                    if ((currentTime - startTime) > DEFAULT_TIMEOUT){
+                        throw new TimeoutException(String.format("Unable to access file: %s", this.filePath));
+                    }
                 }
             }
+
             inChannel = aFile.getChannel();
             long fileSize = inChannel.size();
             if (fileSize == 0){
@@ -59,8 +70,9 @@ public class PackageCollection implements Iterator<FilePackage> {
             if (fileSize > DEFAULT_PACKAGE_SIZE) {
                 this.totalPackage = (int) (fileSize % DEFAULT_PACKAGE_SIZE > 0 ? (fileSize/DEFAULT_PACKAGE_SIZE) + 1: fileSize/DEFAULT_PACKAGE_SIZE);
             }
+
             buffer = ByteBuffer.allocate(DEFAULT_PACKAGE_SIZE);
-        } catch (FileNotFoundException e) {
+        } catch (FileNotFoundException | TimeoutException e) {
             e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
@@ -72,7 +84,7 @@ public class PackageCollection implements Iterator<FilePackage> {
         try {
             inChannel.close();
             aFile.close();
-            System.out.println("file closed");
+            //System.out.println("file closed");
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -84,9 +96,6 @@ public class PackageCollection implements Iterator<FilePackage> {
      */
     @Override
     public boolean hasNext() {
-        if (!(currentPackage != -1 && currentPackage < totalPackage)){
-            closeFile();
-        }
         return currentPackage != -1 && currentPackage < totalPackage;
     }
 
@@ -110,6 +119,10 @@ public class PackageCollection implements Iterator<FilePackage> {
                 nextPackage.setBody(Arrays.copyOfRange(this.buffer.array(),0,length));
 
                 buffer.clear();
+
+                if (currentPackage == totalPackage){
+                    closeFile();
+                }
             } else {
                 closeFile();
             }

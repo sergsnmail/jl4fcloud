@@ -107,7 +107,7 @@ public class MessageServerHandler extends SimpleChannelInboundHandler<Message> {
             PutFilesParam param = method.getParameter();
             if (param != null && !param.getBody().isEmpty()){
                 try {
-                    System.out.printf("id: %s, %d/%d [%s]%n ", param.getPackageId(), param.getPartNumber(), param.getTotalNumber(),param.getMetadata().getFileName());
+                    //System.out.printf("id: %s, %d/%d [%s]%n ", param.getPackageId(), param.getPartNumber(), param.getTotalNumber(),param.getMetadata().getFileName());
                     String pId = param.getPackageId();
                     String transferFile = transfer.get(pId);
                     if (transferFile == null){
@@ -181,16 +181,20 @@ public class MessageServerHandler extends SimpleChannelInboundHandler<Message> {
         if (param != null){
             User user = userService.getUser(userSession.getUsername());
             String uploadedFileName = param.getMetadata().getFileName();
-            String uploadedFilePath = param.getMetadata().getFilePath();
+            String uploadedFilePath = param.getMetadata().getFileRelativePath();
+            System.out.printf("[DEBUG] GET_FILE_INFO uploadedFileName=%s uploadedFilePath=%s\n %s\n",uploadedFileName,uploadedFilePath, param.getMetadata());
 
             List<StorageFile> files = fileService.getFiles(user, uploadedFileName, uploadedFilePath);
 
             if (files != null && files.size() == 1){
                 FileMetadata metadata = new FileMetadata();
                 metadata.setFileName(param.getMetadata().getFileName());
-                metadata.setFilePath(param.getMetadata().getFilePath());
+                metadata.setFilePath(param.getMetadata().getFileRelativePath());
                 metadata.setCreated_at(files.get(0).getCreated_at());
                 metadata.setModified_at(files.get(0).getModified_at());
+
+                System.out.println(metadata);
+
                 FileInfoResult result = new FileInfoResult();
                 result.setMetadata(metadata);
                 method.setResult(result);
@@ -216,7 +220,7 @@ public class MessageServerHandler extends SimpleChannelInboundHandler<Message> {
         String newStorageFilePath = null;
         User user = userService.getUser(userSession.getUsername());
         String uploadedFileName = param.getMetadata().getFileName();
-        String uploadedFilePath = param.getMetadata().getFilePath();
+        String uploadedFilePath = param.getMetadata().getFileRelativePath();
 
         List<StorageFile> files = fileService.getFiles(user, uploadedFileName, uploadedFilePath);
         if (files != null && files.size() > 0) {
@@ -226,6 +230,15 @@ public class MessageServerHandler extends SimpleChannelInboundHandler<Message> {
                         /*Files.deleteIfExists(Paths.get(file.getStorage()));
                         fileService.deleteFile(file);*/
                         if (Files.deleteIfExists(Paths.get(file.getStorage()))) {
+                            fileService.updateFile(StorageFile.builder()
+                                    .user(file.getUser())
+                                    .id(file.getId())
+                                    .created_at(file.getCreated_at())
+                                    .modified_at(param.getMetadata().getModified_at())
+                                    .file_name(file.getFile_name())
+                                    .user_location(file.getUser_location())
+                                    .storage(file.getStorage())
+                                    .build());
                             newStorageFilePath = file.getStorage();
                         } else {
                             fileService.deleteFile(file);
@@ -249,7 +262,7 @@ public class MessageServerHandler extends SimpleChannelInboundHandler<Message> {
                 .file_name(param.getMetadata().getFileName())
                 .created_at(param.getMetadata().getCreated_at())
                 .modified_at(param.getMetadata().getModified_at())
-                .user_location(param.getMetadata().getFilePath())
+                .user_location(param.getMetadata().getFileRelativePath())
                 .storage(newStorageFilePath)
                 .build();
         fileService.addFile(user, storageFile);

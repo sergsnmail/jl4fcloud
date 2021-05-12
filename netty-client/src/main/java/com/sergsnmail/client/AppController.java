@@ -5,7 +5,6 @@ import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
-import com.sergsnmail.common.message.common.UserSession;
 import javafx.stage.Window;
 
 import java.io.IOException;

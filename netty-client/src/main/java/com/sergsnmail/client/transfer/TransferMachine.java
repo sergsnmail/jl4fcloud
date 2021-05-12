@@ -22,8 +22,11 @@ public class TransferMachine {
 
     public void addFile(TransferTask task){
         synchronized (mon) {
-            tasks.add(task);
-            mon.notifyAll();
+            if (!tasks.contains(task)){
+                //System.out.printf("[DEBUG] Added task: %s\n",task);
+                tasks.add(task);
+                mon.notifyAll();
+            }
         }
     }
 

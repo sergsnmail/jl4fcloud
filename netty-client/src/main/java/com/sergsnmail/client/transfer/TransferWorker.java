@@ -6,10 +6,16 @@ import com.sergsnmail.common.json.Base64Converter;
 import com.sergsnmail.common.message.Request;
 import com.sergsnmail.common.message.Response;
 import com.sergsnmail.common.message.common.Message;
+import com.sergsnmail.common.message.method.common.FileMetadata;
 import com.sergsnmail.common.message.method.putfile.PutFilesMethod;
 import com.sergsnmail.common.message.method.putfile.PutFilesParam;
 import com.sergsnmail.common.message.method.putfile.PutFilesResult;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedDeque;
 
@@ -42,33 +48,46 @@ public class TransferWorker implements Runnable, NetworkListener {
                      * если заданий нет, то поток спит
                      */
                     synchronized (mon) {
-                        System.out.println("worker sleep");
+                        //System.out.println("worker sleep");
                         mon.wait();
-                        System.out.println("worker awake");
+                        //System.out.println("worker awake");
                     }
                 }
                 TransferTask task;
                 if ((task = tasks.poll()) != null) {
-                    System.out.println("Transfer begin");
+                    //System.out.println("Transfer begin");
                     PackageCollection packageCollection = new PackageCollection(task.getFile());
+                    FileMetadata fullMeta = appendMetadataInfo(task.getMetadata());
                     if (packageCollection.hasNext()) {
                         while (!Thread.currentThread().isInterrupted() && packageCollection.hasNext()) {
                             currPackage = packageCollection.next();
                             currPackage.setReceived(false);
-                            currPackage.setFileMetadata(task.getMetadata());
+                            currPackage.setFileMetadata(fullMeta);
                             TransferResult result = sendPackageAndWaitResult(currPackage);
                             if (result == TransferResult.RECEIVED) {
                                 createTransferEvent();
                             }
                         }
-                        System.out.println("Transfer complete");
+                       // System.out.println("Transfer complete");
                     }
                 }
             }
             System.out.println(Thread.currentThread().getName() + "shutdown");
-        } catch (InterruptedException e) {
+        } catch (InterruptedException | IOException e) {
             e.printStackTrace();
         }
+    }
+
+    /**
+     * Добавляем атрибуты файла
+     */
+    private FileMetadata appendMetadataInfo(FileMetadata metadata) throws IOException {
+        Path file = Paths.get(metadata.getFilePath());
+        BasicFileAttributes attr = Files.readAttributes(file, BasicFileAttributes.class);
+        metadata.setCreated_at(attr.creationTime().toString());
+        metadata.setModified_at(attr.lastModifiedTime().toString());
+        metadata.setSize(Files.size(file));
+        return metadata;
     }
 
     private TransferResult sendPackageAndWaitResult(FilePackage currPackage) {
@@ -87,7 +106,7 @@ public class TransferWorker implements Runnable, NetworkListener {
         param.setMetadata(filePackage.getFileMetadata());
         param.setBody(Base64Converter.encodeByteToBase64Str(filePackage.getBody()));
 
-        System.out.printf("id: %s, %d/%d [%s]%n ", filePackage.getPackageId(), filePackage.getPackageNumber(), filePackage.getTotalPackageCount(), filePackage.getFileMetadata().getFileName());
+       // System.out.printf("id: %s, %d/%d [%s]%n ", filePackage.getPackageId(), filePackage.getPackageNumber(), filePackage.getTotalPackageCount(), filePackage.getFileMetadata().getFileName());
 
         PutFilesMethod putMethod = PutFilesMethod.builder()
                 .setParameter(param)

@@ -33,6 +33,11 @@ public class InputParameter implements ServerParameter, HandlerParameter{
     }
 
     @Override
+    public String getStorage() {
+        return location.toString();
+    }
+
+    @Override
     public Path getLocation() {
         return location;
     }

@@ -55,6 +55,7 @@ public class ClientController implements Initializable, NetworkListener, FileLis
     private Path localFolder;
 
     private Set<Path> awaitingResponseFiles = new HashSet<>();
+    private Set<Path> awaitingTransferFiles = new HashSet<>();;
     private Set<Path> inStorageFiles = new HashSet<>();
 
 
@@ -131,7 +132,7 @@ public class ClientController implements Initializable, NetworkListener, FileLis
     private void getFileInfoHandler(Response response, GetFileInfo method) {
         FileInfoResult result = method.getResult();
         FileInfoParam param = method.getParameter();
-        Path localFilePath = getLocalPath(Paths.get(param.getMetadata().getFilePath() + File.separator + param.getMetadata().getFileName()));
+        Path localFilePath = getLocalPath(Paths.get(param.getMetadata().getFileRelativePath() + File.separator + param.getMetadata().getFileName()));
 
         if (result == null) {
             sendFile(localFilePath);
@@ -201,8 +202,7 @@ public class ClientController implements Initializable, NetworkListener, FileLis
     }
 
     public void close() {
-        System.out.println("Start transfer machine shutdown");
-        //fileWatcher.printWatchable(); // for DEBUG
+        //System.out.println("Start transfer machine shutdown");
         if (transferMachine != null){
             transferMachine.shutdown();
         }
@@ -214,7 +214,7 @@ public class ClientController implements Initializable, NetworkListener, FileLis
      */
     @Override
     public void createEvent(Path path) {
-        System.out.println("[createEvent]" + path);
+        //System.out.println("[createEvent]" + path);
         getFileInfoFromServer(path);
     }
 
@@ -225,7 +225,7 @@ public class ClientController implements Initializable, NetworkListener, FileLis
 
     @Override
     public void modifyEvent(Path path) {
-        System.out.println("[modifyEvent]" + path);
+        //System.out.println("[modifyEvent]" + path);
         getFileInfoFromServer(path);
     }
 
@@ -266,7 +266,7 @@ public class ClientController implements Initializable, NetworkListener, FileLis
     }
 
     private FileMetadata createMetadata(Path file) throws IOException {
-        FileMetadata metadata = null;
+        FileMetadata metadata;
             /**
              * Определяем путь относительно корневой директории
              * Пример:
@@ -281,11 +281,12 @@ public class ClientController implements Initializable, NetworkListener, FileLis
              * Собираем метаданыне файла
              */
             metadata = new FileMetadata();
-                BasicFileAttributes attr = Files.readAttributes(file, BasicFileAttributes.class);
-                metadata.setCreated_at(attr.creationTime().toString());
-                metadata.setModified_at(attr.lastModifiedTime().toString());
+            BasicFileAttributes attr = Files.readAttributes(file, BasicFileAttributes.class);
+            metadata.setCreated_at(attr.creationTime().toString());
+            metadata.setModified_at(attr.lastModifiedTime().toString());
             metadata.setFileName(file.getFileName().toString());
-            metadata.setFilePath(localPath);
+            metadata.setFilePath(file.toString());
+            metadata.setFileRelativePath(localPath);
             metadata.setSize(Files.size(file));
         return metadata;
     }
