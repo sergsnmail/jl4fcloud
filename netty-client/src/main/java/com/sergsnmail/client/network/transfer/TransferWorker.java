@@ -1,16 +1,21 @@
-package com.sergsnmail.client.transfer;
+package com.sergsnmail.client.network.transfer;
 
-import com.sergsnmail.client.network.ClientNetwork;
-import com.sergsnmail.client.network.NetworkListener;
+import com.sergsnmail.common.message.method.common.TransferPackage;
+import com.sergsnmail.common.network.NetworkListener;
 import com.sergsnmail.common.json.Base64Converter;
 import com.sergsnmail.common.message.Request;
 import com.sergsnmail.common.message.Response;
 import com.sergsnmail.common.message.common.Message;
 import com.sergsnmail.common.message.method.common.FileMetadata;
-import com.sergsnmail.common.message.method.putfile.PutFilesMethod;
-import com.sergsnmail.common.message.method.putfile.PutFilesParam;
-import com.sergsnmail.common.message.method.putfile.PutFilesResult;
+import com.sergsnmail.common.message.method.transferfile.UploadFilesMethod;
+import com.sergsnmail.common.message.method.transferfile.TransferFilesParam;
+import com.sergsnmail.common.message.method.transferfile.TransferFilesResult;
+import com.sergsnmail.common.transfer.FilePackage;
+import com.sergsnmail.common.network.Network;
+import com.sergsnmail.common.transfer.PackageCollection;
+import com.sergsnmail.common.transfer.UploadTask;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -23,19 +28,21 @@ import java.util.concurrent.ConcurrentLinkedDeque;
  * Класс представляет рабочий поток для передачи файла
  */
 public class TransferWorker implements Runnable, NetworkListener {
-    private final ClientNetwork network;
-    private final ConcurrentLinkedDeque<TransferTask> tasks;
+    private final Network network;
+    private final ConcurrentLinkedDeque<UploadTask> tasks;
     private final List<TransferListener> listeners;
     private final Object mon;
     private final Object resultMon = new Object();
+    private final ConcurrentLinkedDeque<String> lockedFiles;
     private FilePackage currPackage;
     private TransferResult currentTransferResult;
 
-    public TransferWorker(ClientNetwork network, ConcurrentLinkedDeque<TransferTask> tasks, List<TransferListener> listeners, Object mon) {
+    public TransferWorker(Network network, ConcurrentLinkedDeque<UploadTask> tasks, List<TransferListener> listeners, Object mon, ConcurrentLinkedDeque<String> lockedFiles) {
         this.network = network;
         this.tasks = tasks;
         this.listeners = listeners;
         this.mon = mon;
+        this.lockedFiles = lockedFiles;
         this.network.addChannelListener(this);
     }
 
@@ -53,9 +60,14 @@ public class TransferWorker implements Runnable, NetworkListener {
                         //System.out.println("worker awake");
                     }
                 }
-                TransferTask task;
+                UploadTask task;
                 if ((task = tasks.poll()) != null) {
                     //System.out.println("Transfer begin");
+                    String relPath = task.getMetadata().getFileRelativePath() + File.separator + task.getMetadata().getFileName();
+                    while(lockedFiles.contains(relPath)){}
+
+                    lockedFiles.add(relPath);
+
                     PackageCollection packageCollection = new PackageCollection(task.getFile());
                     FileMetadata fullMeta = appendMetadataInfo(task.getMetadata());
                     if (packageCollection.hasNext()) {
@@ -69,6 +81,7 @@ public class TransferWorker implements Runnable, NetworkListener {
                             }
                         }
                        // System.out.println("Transfer complete");
+                        lockedFiles.remove(relPath);
                     }
                 }
             }
@@ -99,16 +112,23 @@ public class TransferWorker implements Runnable, NetworkListener {
     }
 
     private void sendPackage(FilePackage filePackage) {
-        PutFilesParam param = new PutFilesParam();
-        param.setPackageId(filePackage.getPackageId());
-        param.setPartNumber(filePackage.getPackageNumber());
-        param.setTotalNumber(filePackage.getTotalPackageCount());
-        param.setMetadata(filePackage.getFileMetadata());
-        param.setBody(Base64Converter.encodeByteToBase64Str(filePackage.getBody()));
-
+        TransferPackage transferPackage = new TransferPackage();
+        transferPackage.setPackageId(filePackage.getPackageId());
+        transferPackage.setPartNumber(filePackage.getPackageNumber());
+        transferPackage.setTotalNumber(filePackage.getTotalPackageCount());
+        transferPackage.setMetadata(filePackage.getFileMetadata());
+        transferPackage.setBody(Base64Converter.encodeByteToBase64Str(filePackage.getBody()));
+        TransferFilesParam param = new TransferFilesParam();
+        param.setTransferPackage(transferPackage);
+//        param.setPackageId(filePackage.getPackageId());
+//        param.setPartNumber(filePackage.getPackageNumber());
+//        param.setTotalNumber(filePackage.getTotalPackageCount());
+//        param.setMetadata(filePackage.getFileMetadata());
+//        param.setBody(Base64Converter.encodeByteToBase64Str(filePackage.getBody()));
+//
        // System.out.printf("id: %s, %d/%d [%s]%n ", filePackage.getPackageId(), filePackage.getPackageNumber(), filePackage.getTotalPackageCount(), filePackage.getFileMetadata().getFileName());
 
-        PutFilesMethod putMethod = PutFilesMethod.builder()
+        UploadFilesMethod putMethod = UploadFilesMethod.builder()
                 .setParameter(param)
                 .build();
 
@@ -121,20 +141,20 @@ public class TransferWorker implements Runnable, NetworkListener {
     public void messageReceive(Message msg) {
         if (msg instanceof Response) {
             Response resp = (Response) msg;
-            if (resp.getMethod() instanceof PutFilesMethod) {
-                handlePutFilesMethod((PutFilesMethod) resp.getMethod());
+            if (resp.getMethod() instanceof UploadFilesMethod) {
+                handlePutFilesMethod((UploadFilesMethod) resp.getMethod());
             }
         }
     }
 
-    private void handlePutFilesMethod(PutFilesMethod putFilesMethod){
-        PutFilesResult putResult = putFilesMethod.getResult();
+    private void handlePutFilesMethod(UploadFilesMethod putFilesMethod){
+        TransferFilesResult putResult = putFilesMethod.getResult();
         if (putResult != null) {
-            String receivedPackageId = putFilesMethod.getParameter().getPackageId();
+
+            String receivedPackageId = putFilesMethod.getParameter().getTransferPackage().getPackageId();
             if (currPackage != null && currPackage.getPackageId().equals(receivedPackageId)) {
                 if ("1".equals(putResult.getStatus())) {
                     setCurrentTransferResult(TransferResult.RECEIVED);
-                    //currPackage.setReceived(true);
                 }
             }
         }
@@ -154,6 +174,7 @@ public class TransferWorker implements Runnable, NetworkListener {
 
     private void createTransferEvent() {
         TransferEvent transferEvent = new TransferEvent();
+        transferEvent.setType("UPLOAD");
         transferEvent.setFileName(currPackage.getFileMetadata().getFileName());
         transferEvent.setCurrentNumber(currPackage.getPackageNumber());
         transferEvent.setTotalNumber(currPackage.getTotalPackageCount());

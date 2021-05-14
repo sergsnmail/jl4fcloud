@@ -1,11 +1,13 @@
 package com.sergsnmail.common.message.method.common;
 
-public class FileMetadata {
+public class FileMetadata extends Metadata{
+
     private String fileName;
     private String filePath;
     private String fileRelativePath;
     private String created_at;
     private String modified_at;
+    private String localFolder;
     private long size;
 
     public String getFileName() {
@@ -56,6 +58,14 @@ public class FileMetadata {
         this.fileRelativePath = fileRelativePath;
     }
 
+    public String getLocalFolder() {
+        return localFolder;
+    }
+
+    public void setLocalFolder(String localFolder) {
+        this.localFolder = localFolder;
+    }
+
     @Override
     public String toString() {
         return "FileMetadata{" +
@@ -64,6 +74,7 @@ public class FileMetadata {
                 ", fileRelativePath='" + fileRelativePath + '\'' +
                 ", created_at='" + created_at + '\'' +
                 ", modified_at='" + modified_at + '\'' +
+                ", localFolder='" + localFolder + '\'' +
                 ", size=" + size +
                 '}';
     }

@@ -1,7 +1,8 @@
 package com.sergsnmail.client;
 
 import com.sergsnmail.client.network.ClientNetwork;
-import com.sergsnmail.client.network.NetworkListener;
+import com.sergsnmail.common.network.Network;
+import com.sergsnmail.common.network.NetworkListener;
 import com.sergsnmail.common.message.Request;
 import com.sergsnmail.common.message.Response;
 import com.sergsnmail.common.message.common.Message;
@@ -30,7 +31,7 @@ public class LoginController implements Initializable, NetworkListener {
     private PasswordField password;
 
     private AppCallback callable;
-    private ClientNetwork clientNetwork;
+    private Network clientNetwork;
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {

@@ -1,15 +1,15 @@
-package com.sergsnmail.client.transfer;
+package com.sergsnmail.common.transfer;
 
 import com.sergsnmail.common.message.method.common.FileMetadata;
 
 import java.nio.file.Path;
 import java.util.Objects;
 
-public class TransferTask {
+public class UploadTask {
     private Path file;
     private FileMetadata metadata;
 
-    public TransferTask(Path file, FileMetadata metadata) {
+    public UploadTask(Path file, FileMetadata metadata) {
         this.file = file;
         this.metadata = metadata;
     }
@@ -34,7 +34,7 @@ public class TransferTask {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        TransferTask that = (TransferTask) o;
+        UploadTask that = (UploadTask) o;
         return file.equals(that.file);
     }
 

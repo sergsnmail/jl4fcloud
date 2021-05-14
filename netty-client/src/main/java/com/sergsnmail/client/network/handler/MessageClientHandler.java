@@ -1,6 +1,6 @@
 package com.sergsnmail.client.network.handler;
 
-import com.sergsnmail.client.network.NetworkListener;
+import com.sergsnmail.common.network.NetworkListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import com.sergsnmail.common.message.common.Message;

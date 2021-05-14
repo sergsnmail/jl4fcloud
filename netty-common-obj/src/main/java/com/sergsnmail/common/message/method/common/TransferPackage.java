@@ -1,11 +1,9 @@
-package com.sergsnmail.common.message.method.putfile;
+package com.sergsnmail.common.message.method.common;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.sergsnmail.common.message.common.Parameter;
-import com.sergsnmail.common.message.method.common.FileMetadata;
 
-public class PutFilesParam extends Parameter {
+public class TransferPackage<T extends Metadata> {
 
     @JsonProperty("packageId")
     private String packageId;
@@ -18,7 +16,7 @@ public class PutFilesParam extends Parameter {
 
     @JsonProperty("metadata")
     @JsonTypeInfo(use=JsonTypeInfo.Id.CLASS, property="@class")
-    private FileMetadata metadata;
+    private T metadata;
 
     @JsonProperty("body")
     private String body;
@@ -55,11 +53,12 @@ public class PutFilesParam extends Parameter {
         this.totalNumber = totalnumber;
     }
 
-    public void setMetadata(FileMetadata metadata) {
+    public void setMetadata(T metadata) {
         this.metadata = metadata;
     }
 
-    public FileMetadata getMetadata() {
+    public T getMetadata() {
         return metadata;
     }
+
 }

@@ -1,4 +1,4 @@
-package com.sergsnmail.client.network;
+package com.sergsnmail.common.network;
 
 import com.sergsnmail.common.message.common.Message;
 

@@ -1,20 +1,19 @@
-package com.sergsnmail.common.message.method.putfile;
+package com.sergsnmail.common.message.method.transferfile;
 
 import com.sergsnmail.common.message.common.Method;
 
-public class PutFilesMethod extends Method<PutFilesParam, PutFilesResult> {
-
-    private PutFilesMethod(){
+public class DownloadFile extends Method<DownloadFileParam, DownloadFileResult> {
+    private DownloadFile(){
     }
 
-    public static PutFilesMethod.PutFilesBuilder builder () { return new PutFilesMethod.PutFilesBuilder();}
+    public static DownloadFileBuilder builder () { return new DownloadFileBuilder();}
 
-    public static class PutFilesBuilder {
+    public static class DownloadFileBuilder {
 
-        private PutFilesParam param;
-        private PutFilesResult result;
+        private DownloadFileParam param;
+        private DownloadFileResult result;
 
-        public PutFilesMethod.PutFilesBuilder setParameter(PutFilesParam param){
+        public DownloadFileBuilder setParameter(DownloadFileParam param){
             if (param == null) {
                 throw new NullPointerException("method must be non-null but is null");
             } else {
@@ -23,7 +22,7 @@ public class PutFilesMethod extends Method<PutFilesParam, PutFilesResult> {
             }
         }
 
-        public PutFilesMethod.PutFilesBuilder setResult(PutFilesResult result){
+        public DownloadFileBuilder setResult(DownloadFileResult result){
             if (result == null) {
                 throw new NullPointerException("method must be non-null but is null");
             } else {
@@ -32,13 +31,12 @@ public class PutFilesMethod extends Method<PutFilesParam, PutFilesResult> {
             }
         }
 
-        public PutFilesMethod build() {
-            PutFilesMethod method = new PutFilesMethod();
+        public DownloadFile build() {
+            DownloadFile method = new DownloadFile();
             method.parameter = this.param;
             method.result = this.result;
             return method;
         }
 
     }
-
 }

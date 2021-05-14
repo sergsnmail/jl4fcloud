@@ -10,7 +10,7 @@ public class AuthResult extends Result {
     @JsonProperty("isAuth")
     private boolean isAuth;
 
-    @JsonProperty("com/sergsnmail/common/message")
+    @JsonProperty("message")
     private String message;
 
     @JsonProperty("session")

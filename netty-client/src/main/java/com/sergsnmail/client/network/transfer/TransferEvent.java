@@ -1,9 +1,10 @@
-package com.sergsnmail.client.transfer;
+package com.sergsnmail.client.network.transfer;
 
 /**
  * Класс хранящий данные конкретной предачи
  */
 public class TransferEvent {
+    private String type;
     private String fileName;
     private int currentNumber;
     private int totalNumber;
@@ -30,5 +31,13 @@ public class TransferEvent {
 
     public void setTotalNumber(int totalNumber) {
         this.totalNumber = totalNumber;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
     }
 }

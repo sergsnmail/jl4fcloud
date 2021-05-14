@@ -1,4 +1,4 @@
-package com.sergsnmail.client.transfer;
+package com.sergsnmail.common.transfer;
 
 import com.sergsnmail.common.message.method.common.FileMetadata;
 

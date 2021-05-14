@@ -1,10 +1,14 @@
 package com.sergsnmail.client;
 
-import com.sergsnmail.client.transfer.TransferEvent;
-import com.sergsnmail.client.transfer.TransferListener;
-import com.sergsnmail.client.transfer.TransferMachine;
-import com.sergsnmail.client.transfer.TransferTask;
+import com.sergsnmail.client.network.transfer.TransferEvent;
+import com.sergsnmail.client.network.transfer.TransferListener;
+import com.sergsnmail.client.network.transfer.TransferMachine;
+import com.sergsnmail.common.message.method.common.FileDbMetadata;
+import com.sergsnmail.common.network.Network;
+import com.sergsnmail.common.transfer.DownloadTask;
+import com.sergsnmail.common.transfer.UploadTask;
 import com.sergsnmail.client.watcher.FileWatcher;
+import com.sergsnmail.client.watcher.WatchRepo;
 import com.sergsnmail.common.message.method.common.FileMetadata;
 import com.sergsnmail.common.message.method.getfileinfo.FileInfoParam;
 import com.sergsnmail.common.message.method.getfileinfo.FileInfoResult;
@@ -24,8 +28,7 @@ import com.sergsnmail.common.message.method.getfile.GetFilesResult;
 import com.sergsnmail.common.message.Response;
 import com.sergsnmail.common.message.Request;
 import com.sergsnmail.client.watcher.FileListener;
-import com.sergsnmail.client.network.ClientNetwork;
-import com.sergsnmail.client.network.NetworkListener;
+import com.sergsnmail.common.network.NetworkListener;
 
 import java.io.IOException;
 import java.net.URL;
@@ -37,31 +40,44 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
 import java.time.Instant;
 
-public class ClientController implements Initializable, NetworkListener, FileListener, TransferListener {
+public class ClientController implements Initializable, NetworkListener, FileListener, TransferListener, WatchRepoListener {
 
     @FXML
-    public ProgressBar transferProgress;
+    public ProgressBar downloadProgress;
     @FXML
-    public Label fileNameLabel;
+    public Label downloadFileName;
     @FXML
-    public Label legendLabel;
+    public Label downloadPackage;
     @FXML
-    private TextArea fileList;
+    public ProgressBar uploadProgress;
+    @FXML
+    public Label uploadFileName;
+    @FXML
+    public Label uploadPackage;
+    //@FXML
+    //private TextArea fileList;
 
-    private ClientNetwork network;
+    private Network network;
     private TransferMachine transferMachine;
     private AppCallback appCallback;
     private FileWatcher fileWatcher;
     private Path localFolder;
 
-    private Set<Path> awaitingResponseFiles = new HashSet<>();
-    private Set<Path> awaitingTransferFiles = new HashSet<>();;
-    private Set<Path> inStorageFiles = new HashSet<>();
+
+    //private Map<Path, Set<Path>> watchingFiles = new HashMap<>();
+    //private Set<Path> awaitingResponseFiles = new HashSet<>();
+    private Set<Path> awaitingResponseFiles1 = Collections.synchronizedSet(new HashSet<>());
+    //private Set<Path> awaitingTransferFiles = new HashSet<>();;
+    private Set<FileDbMetadata> inStorageFiles = new HashSet<>();
+
+    private WatchRepo watchRepo = new WatchRepo();
+
+    //private Object monO= new Object();
 
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
-        transferProgress.setProgress(0.0);
+        downloadProgress.setProgress(0.0);
     }
 
     public void init(AppCallback callable) {
@@ -71,8 +87,10 @@ public class ClientController implements Initializable, NetworkListener, FileLis
         this.network.addChannelListener(this);
 
         this.transferMachine = new TransferMachine(this.network);
-        this.transferMachine.addListener(this);
+        this.transferMachine.addUploadListener(this);
+        this.transferMachine.addDownloadListener(this);
         this.transferMachine.start();
+        Set<Path> ttt = Collections.synchronizedSet(new HashSet<>());
     }
 
     @Override
@@ -115,12 +133,24 @@ public class ClientController implements Initializable, NetworkListener, FileLis
     private void getFileResponseHandler(Response response, GetFilesMethod method) {
         GetFilesResult result = method.getResult();
         if (result != null && result.getFiles() != null && result.getFiles().size() > 0) {
-            this.fileList.clear();
-            for (String file : result.getFiles()) {
-                System.out.println(Paths.get(file));
-                inStorageFiles.add(Paths.get(file));
-                this.fileList.appendText(file + "\n");
+            //this.fileList.clear();
+            for (FileDbMetadata fileDbMetadata : result.getDbmetadata()) {
+                inStorageFiles.add(fileDbMetadata);
+//                //this.fileList.appendText(fileDbMetadata.getLocation() +
+//                        File.separator +
+//                        fileDbMetadata.getFileName() + "\n");
             }
+        }
+
+        downloadFileFromServer();
+    }
+
+    private void downloadFileFromServer() {
+        for (FileDbMetadata inStorageFile : inStorageFiles) {
+            DownloadTask task = new DownloadTask();
+            task.setFileDbMetadata(inStorageFile);
+            task.setUserFolder(localFolder.toString());
+            transferMachine.addDownloadTask(task);
         }
     }
 
@@ -136,7 +166,7 @@ public class ClientController implements Initializable, NetworkListener, FileLis
 
         if (result == null) {
             sendFile(localFilePath);
-        } else if (result != null && awaitingResponseFiles.contains(localFilePath)) {
+        } else if (result != null && awaitingResponseFiles1.contains(localFilePath)) {
             try {
                 FileMetadata localMetadata = createMetadata(localFilePath);
                 FileMetadata serverMetadata = result.getMetadata();
@@ -149,7 +179,7 @@ public class ClientController implements Initializable, NetworkListener, FileLis
                 }
             }catch (Exception e){}
         }
-        awaitingResponseFiles.remove(localFilePath);
+        removeAwaitingResponse(localFilePath);
     }
 
     private Path getLocalPath(Path path) {
@@ -174,7 +204,10 @@ public class ClientController implements Initializable, NetworkListener, FileLis
                 fileWatcher.register(localFolder);
                 fileWatcher.addListener(this);
                 fileWatcher.start();
-                fileWatcher.registerAll(localFolder);
+
+                watchRepo = new WatchRepo();
+                watchRepo.addListener(this);
+                watchRepo.start();
             }
 
             Request getFilesRequest = Request.builder()
@@ -206,6 +239,8 @@ public class ClientController implements Initializable, NetworkListener, FileLis
         if (transferMachine != null){
             transferMachine.shutdown();
         }
+        if (watchRepo != null)
+            watchRepo.shutdown();
     }
 
     /**
@@ -215,18 +250,23 @@ public class ClientController implements Initializable, NetworkListener, FileLis
     @Override
     public void createEvent(Path path) {
         //System.out.println("[createEvent]" + path);
-        getFileInfoFromServer(path);
+        watchRepo.add(path);
     }
 
     @Override
     public void deleteEvent(Path path) {
-        System.out.println("[deleteEvent]" + path);
+        //System.out.println("[deleteEvent]" + path);
+        try {
+            watchRepo.remove(path);
+        } catch (NoSuchMethodException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
     public void modifyEvent(Path path) {
         //System.out.println("[modifyEvent]" + path);
-        getFileInfoFromServer(path);
+        watchRepo.add(path);
     }
 
 
@@ -235,8 +275,10 @@ public class ClientController implements Initializable, NetworkListener, FileLis
      * @param path
      */
     private void getFileInfoFromServer(Path path) {
-        if (!awaitingResponseFiles.contains(path)) {
-            awaitingResponseFiles.add(path);
+        if (!transferMachine.isLocked(Paths.get(getRelativePath(path) + File.separator + path.getFileName())) && !awaitingResponseFiles1.contains(path)) {
+            System.out.println("[DEBUG] get info from server: " + path);
+            addAwaitingResp(path);
+
             FileInfoParam fileInfoParam = new FileInfoParam();
 
             try {
@@ -248,9 +290,25 @@ public class ClientController implements Initializable, NetworkListener, FileLis
                         .build();
                 network.sendCommand(getFilesStateRequest);
             } catch (Exception e){
-                awaitingResponseFiles.remove(path);
+                removeAwaitingResponse(path);
             }
         }
+    }
+
+    private void removeAwaitingResponse(Path localFilePath) {
+        //synchronized (monO) {
+            System.out.printf("remove awaiting for responce %s\n ",localFilePath);
+            //awaitingResponseFiles.remove(localFilePath);
+            awaitingResponseFiles1.remove(localFilePath);
+        //}
+    }
+
+    private void addAwaitingResp(Path path) {
+        //synchronized (monO) {
+            System.out.printf("Add awaiting for responce %s\n ",path);
+            //awaitingResponseFiles.add(path);
+            awaitingResponseFiles1.add(path);
+        //}
     }
 
     /**
@@ -259,9 +317,10 @@ public class ClientController implements Initializable, NetworkListener, FileLis
      */
     public void sendFile(Path file) {
         try {
-            transferMachine.addFile(new TransferTask(file, createMetadata(file)));
+            System.out.println("[DEBUG] to transfer: " + file);
+            transferMachine.addUploadTask(new UploadTask(file, createMetadata(file)));
         }catch (Exception e){
-            awaitingResponseFiles.remove(file);
+            removeAwaitingResponse(file);
         }
     }
 
@@ -303,12 +362,28 @@ public class ClientController implements Initializable, NetworkListener, FileLis
      * @param event
      */
     private void transferHandle(TransferEvent event) {
-        fileNameLabel.setText(event.getFileName());
-        legendLabel.setText(event.getCurrentNumber() + " of " + event.getTotalNumber());
-        double currNum = event.getCurrentNumber();
-        double totalNum = event.getTotalNumber();
-        double currProgress = currNum / totalNum;
-        transferProgress.setProgress(currProgress);
+        if ("UPLOAD".equals(event.getType())) {
+            uploadFileName.setText(event.getFileName());
+            uploadPackage.setText(event.getCurrentNumber() + " of " + event.getTotalNumber());
+            double currNum = event.getCurrentNumber();
+            double totalNum = event.getTotalNumber();
+            double currProgress = currNum / totalNum;
+            uploadProgress.setProgress(currProgress);
+        }
+
+        if ("DOWNLOAD".equals(event.getType())){
+            downloadFileName.setText(event.getFileName());
+            downloadPackage.setText(event.getCurrentNumber() + " of " + event.getTotalNumber());
+            double currNum = event.getCurrentNumber();
+            double totalNum = event.getTotalNumber();
+            double currProgress = currNum / totalNum;
+            downloadProgress.setProgress(currProgress);
+        }
+
     }
 
+    @Override
+    public void onWatchRepoEvent(Path file) {
+        getFileInfoFromServer(file);
+    }
 }

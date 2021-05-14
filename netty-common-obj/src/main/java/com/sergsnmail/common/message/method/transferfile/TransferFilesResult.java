@@ -1,9 +1,9 @@
-package com.sergsnmail.common.message.method.putfile;
+package com.sergsnmail.common.message.method.transferfile;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.sergsnmail.common.message.common.Result;
 
-public class PutFilesResult extends Result {
+public class TransferFilesResult extends Result {
 
     @JsonProperty("status")
     private String status;

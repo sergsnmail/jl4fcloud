@@ -3,9 +3,11 @@ package com.sergsnmail.client.network;
 import com.sergsnmail.client.network.codec.MessageDecoder;
 import com.sergsnmail.client.network.handler.MessageClientHandler;
 import com.sergsnmail.client.network.codec.MessageEncoder;
+import com.sergsnmail.common.message.common.Message;
+import com.sergsnmail.common.network.Network;
+import com.sergsnmail.common.network.NetworkListener;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.codec.LengthFieldPrepender;
-import io.netty.handler.codec.LineBasedFrameDecoder;
 import com.sergsnmail.common.message.Request;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.ChannelFuture;
@@ -14,11 +16,8 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
-import io.netty.handler.codec.json.JsonObjectDecoder;
-import io.netty.handler.codec.string.StringDecoder;
-import io.netty.handler.codec.string.StringEncoder;
 
-public class ClientNetwork {
+public class ClientNetwork implements Network {
 
     private SocketChannel channel;
     private static final String HOST = "localhost";
@@ -58,20 +57,23 @@ public class ClientNetwork {
             }
         }).start();
     }
-
-    public void sendCommand(Request msg){
+    @Override
+    public void sendCommand(Message msg){
         channel.writeAndFlush(msg);
     }
 
+    @Override
     public void addChannelListener(NetworkListener listener){
         this.messageHandler.addListener(listener);
     }
 
+    @Override
     public void removeChannelListener(NetworkListener listener){
         this.messageHandler.removeListener(listener);
     }
 
-    public void close() throws InterruptedException {
+    @Override
+    public void close() {
         channel.close();
         System.out.println("channel close");
     }

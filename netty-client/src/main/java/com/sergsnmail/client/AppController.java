@@ -1,12 +1,12 @@
 package com.sergsnmail.client;
 
 import com.sergsnmail.client.network.ClientNetwork;
+import com.sergsnmail.common.network.Network;
 import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 import javafx.stage.Window;
-
 import java.io.IOException;
 
 public class AppController implements AppCallback {
@@ -15,7 +15,7 @@ public class AppController implements AppCallback {
     private Scene scLogin;
     private Scene scMain;
 
-    private ClientNetwork network;
+    private Network network;
     private ClientController clientController;
     private LoginController loginController;
 
@@ -25,6 +25,7 @@ public class AppController implements AppCallback {
     }
 
     private void init() throws IOException {
+
         /**
          * Создаем клиенсткое подключение
          */
@@ -36,6 +37,7 @@ public class AppController implements AppCallback {
         FXMLLoader loader = new FXMLLoader(getClass().getResource("login.fxml"));
         this.scLogin = new Scene(loader.load());
         this.appWindow.setTitle("Sign In");
+        this.appWindow.setResizable(false);
         this.appWindow.setScene(scLogin);
 
         /**
@@ -47,30 +49,30 @@ public class AppController implements AppCallback {
         this.appWindow.setOnCloseRequest(request -> {
             closeApp();
         });
+
     }
 
     /**
      * Обработчик закрытия приложения
      */
     private void closeApp() {
-        try {
-            this.network.close();
-            if (this.clientController != null){
-                this.clientController.close();
-            }
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+        this.network.close();
+        if (this.clientController != null){
+            this.clientController.close();
         }
     }
 
     private void openMainWindow() throws IOException {
         FXMLLoader loader = new FXMLLoader(getClass().getResource("client.fxml"));
         this.scMain = new Scene(loader.load());
+
         /**
          * Получаем контроллер и устанавливаем callback
          */
         this.clientController = loader.getController();
         this.clientController.init(this);
+        this.appWindow.setTitle("Client");
+        this.appWindow.setResizable(false);
         this.appWindow.setScene(scMain);
     }
 
@@ -97,7 +99,7 @@ public class AppController implements AppCallback {
     }
 
     @Override
-    public ClientNetwork getNetwork() {
+    public Network getNetwork() {
         return network;
     }
 
@@ -105,5 +107,4 @@ public class AppController implements AppCallback {
     public Window getStage() {
         return appWindow;
     }
-
 }

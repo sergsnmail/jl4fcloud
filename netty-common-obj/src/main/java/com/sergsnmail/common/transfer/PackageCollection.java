@@ -1,4 +1,4 @@
-package com.sergsnmail.client.transfer;
+package com.sergsnmail.common.transfer;
 /**
  * Класс для формирования пакетов для отправки
  * Разбивает воходящий файл на сегменты размером, указанным в
@@ -11,7 +11,6 @@ import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.Path;
-import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.UUID;

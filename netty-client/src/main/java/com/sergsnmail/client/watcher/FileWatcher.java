@@ -23,13 +23,12 @@ public class FileWatcher implements Runnable {
     }
 
     public void register(Path path) throws IOException {
-        System.out.println("Register" + path);
+        //System.out.println("Register" + path);
         WatchKey key =  path.register(this.watchService, ENTRY_CREATE, ENTRY_MODIFY, ENTRY_DELETE );
         keys.put(key, path);
     }
 
     public void registerAll(final Path start) throws IOException {
-        register(start);
         Files.walkFileTree(start, new SimpleFileVisitor<Path>() {
             @Override
             public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs)
@@ -59,6 +58,9 @@ public class FileWatcher implements Runnable {
                     Path file = watchable.resolve((Path) event.context());
                     if (Files.isDirectory(file, NOFOLLOW_LINKS)) {
                          registerAll(file);
+                         //fireNotify(event, watchable.resolve((Path) event.context()));
+                    //}
+                    //fireNotify(event, watchable.resolve((Path) event.context()));
                     } else {
                         fireNotify(event, watchable.resolve((Path) event.context()));
                     }
