@@ -19,17 +19,20 @@ public class AppController implements AppCallback {
     private ClientController clientController;
     private LoginController loginController;
 
-    public AppController(Stage primaryStage) throws IOException {
+    public AppController(Stage primaryStage, int port, String host) throws IOException {
         this.appWindow = primaryStage;
-        init();
+        init(port, host);
     }
 
-    private void init() throws IOException {
+    private void init(int port, String host) throws IOException {
 
+        if (port < 0 && host.isEmpty()){
+            throw new IllegalArgumentException("Wrong connection parameters");
+        }
         /**
          * Создаем клиенсткое подключение
          */
-        this.network = new ClientNetwork();
+        this.network = new ClientNetwork(port, host);
 
         /**
          * Загружаем сцену с авторизацией

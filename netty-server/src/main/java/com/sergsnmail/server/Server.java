@@ -37,7 +37,8 @@ public class Server {
             ChannelFuture f = b.bind(port).sync();
             System.out.printf("The server is started with the following parameters:\n" +
                     "Port: %d\n" +
-                    "Storage: %s\n", parameter.getPort(), parameter.getStorage());
+                    "Storage root dir: %s\n" + "" +
+                    "Database: %s\n", parameter.getPort(), parameter.getStorageRootDir(), parameter.getDbLocation());
             f.channel().closeFuture().sync();
         } finally {
             workerGroup.shutdownGracefully();

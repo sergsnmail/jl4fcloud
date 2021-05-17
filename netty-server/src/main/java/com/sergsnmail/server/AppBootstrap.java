@@ -36,7 +36,7 @@ public class AppBootstrap {
                         new LengthFieldPrepender(3), // new
                         new MessageDecoder(),
                         new MessageEncoder(),
-                        new AuthorizationServerHandler(userSession),
+                        new AuthorizationServerHandler(appParam, userSession),
                         new MessageServerHandler(appParam, userSession));
             }
         }).run();

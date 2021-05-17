@@ -7,11 +7,15 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import static java.nio.file.LinkOption.NOFOLLOW_LINKS;
 import static java.nio.file.StandardWatchEventKinds.*;
 
 public class FileWatcher implements Runnable {
+
+    private ExecutorService SERVICE;
 
     private WatchService watchService;
     private List<FileListener> listeners = new ArrayList<>();
@@ -23,7 +27,6 @@ public class FileWatcher implements Runnable {
     }
 
     public void register(Path path) throws IOException {
-        //System.out.println("Register" + path);
         WatchKey key =  path.register(this.watchService, ENTRY_CREATE, ENTRY_MODIFY, ENTRY_DELETE );
         keys.put(key, path);
     }
@@ -89,11 +92,16 @@ public class FileWatcher implements Runnable {
     }
 
     public void start(){
-            Thread thread = new Thread(this);
-            thread.setDaemon(true);
-            thread.start();
+        SERVICE = Executors.newFixedThreadPool(1);
+        Thread thread = new Thread(this);
+        SERVICE.execute(this);
+        //thread.setDaemon(true);
+        //thread.start();
     }
 
+    public void shutdown(){
+        SERVICE.shutdownNow();
+    }
     public void printWatchable() {
         for (Map.Entry<WatchKey, Path> watchKeyPathEntry : keys.entrySet()) {
             System.out.println(watchKeyPathEntry.getValue());

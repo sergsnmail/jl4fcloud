@@ -55,14 +55,11 @@ public class TransferWorker implements Runnable, NetworkListener {
                      * если заданий нет, то поток спит
                      */
                     synchronized (mon) {
-                        //System.out.println("worker sleep");
                         mon.wait();
-                        //System.out.println("worker awake");
                     }
                 }
                 UploadTask task;
                 if ((task = tasks.poll()) != null) {
-                    //System.out.println("Transfer begin");
                     String relPath = task.getMetadata().getFileRelativePath() + File.separator + task.getMetadata().getFileName();
                     while(lockedFiles.contains(relPath)){}
 
@@ -80,9 +77,8 @@ public class TransferWorker implements Runnable, NetworkListener {
                                 createTransferEvent();
                             }
                         }
-                       // System.out.println("Transfer complete");
-                        lockedFiles.remove(relPath);
                     }
+                    lockedFiles.remove(relPath);
                 }
             }
             System.out.println(Thread.currentThread().getName() + "shutdown");

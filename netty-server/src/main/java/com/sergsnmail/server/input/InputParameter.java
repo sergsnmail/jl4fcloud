@@ -5,11 +5,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-public class InputParameter implements ServerParameter, HandlerParameter{
+public class InputParameter implements ServerParameter{
 
     private int DEFAULT_PORT = 8989;
-    private Path location;
+    private String location;
     private int port;
+    private String dbLocation;
 
     public InputParameter setLocation(String location) throws IOException {
         if (location == null){
@@ -19,12 +20,18 @@ public class InputParameter implements ServerParameter, HandlerParameter{
         if (!Files.exists(locPath)){
             Files.createDirectory(locPath);
         }
-        this.location = locPath;
+        this.location = location;
         return this;
     }
 
-    public void setPort(int port) {
+    public InputParameter setPort(int port) {
         this.port = port;
+        return this;
+    }
+
+    public InputParameter setDbLocation(String dbLocation) {
+        this.dbLocation = dbLocation;
+        return  this;
     }
 
     @Override
@@ -33,13 +40,13 @@ public class InputParameter implements ServerParameter, HandlerParameter{
     }
 
     @Override
-    public String getStorage() {
-        return location.toString();
+    public String getStorageRootDir() {
+        return location;
     }
 
     @Override
-    public Path getLocation() {
-        return location;
+    public String getDbLocation() {
+        return dbLocation;
     }
 
 }

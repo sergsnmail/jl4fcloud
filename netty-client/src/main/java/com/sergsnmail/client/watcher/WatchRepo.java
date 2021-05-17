@@ -5,6 +5,7 @@ import com.sergsnmail.client.WatchRepoListener;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -14,13 +15,19 @@ import java.util.stream.Stream;
 
 public class WatchRepo {
     private static final long DEFAULT_UPDATE_TIMEOUT = 5000;
-    private static final long WAIT_TIMEOUT = 3000;
+    private static final long WAIT_TIMEOUT = 1000;
     private static final long COPY_TIMEOUT = 2000;
     private ConcurrentHashMap<Path, RepoInfo> watchedFiles = new ConcurrentHashMap<>();
     private ConcurrentHashMap<Path, Long> copyFolder = new ConcurrentHashMap<>();
     private List<WatchRepoListener> listeners = new ArrayList<>();
 
+    private Path syncDir;
+
     private ExecutorService SERVICE;
+
+    public void setSyncDir(Path syncDir) {
+        this.syncDir = syncDir;
+    }
 
     public void add(Path file){
         if (file == null && !Files.exists(file)){
@@ -63,7 +70,6 @@ public class WatchRepo {
         }
     }
 
-
     public void remove(Path path) throws NoSuchMethodException {
         watchedFiles.remove(path);
     }
@@ -82,6 +88,9 @@ public class WatchRepo {
         SERVICE = Executors.newFixedThreadPool(1);
         SERVICE.execute(() ->{
             //System.out.println("RepoWatcher running...\n");
+            if (syncDir != null ){
+                scanFolder(syncDir);
+            }
             while (!Thread.currentThread().isInterrupted()) {
                 //System.out.println("checking file in repo");
                 try {

@@ -49,5 +49,5 @@
          </Pane>
       </center>
    </BorderPane>
-      <Button alignment="CENTER" contentDisplay="CENTER" mnemonicParsing="false" onAction="#OnPressedAction" prefHeight="39.0" prefWidth="500.0" text="Select sync folder..." VBox.vgrow="ALWAYS" />
+      <Button fx:id="SelectSyncDir" alignment="CENTER" contentDisplay="CENTER" mnemonicParsing="false" onAction="#OnPressedAction" prefHeight="39.0" prefWidth="500.0" text="Select sync folder..." VBox.vgrow="ALWAYS" />
 </VBox>

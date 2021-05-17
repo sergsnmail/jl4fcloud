@@ -14,9 +14,9 @@ import com.sergsnmail.common.message.method.getfileinfo.FileInfoParam;
 import com.sergsnmail.common.message.method.getfileinfo.FileInfoResult;
 import com.sergsnmail.common.message.method.getfileinfo.GetFileInfo;
 import javafx.fxml.FXML;
+import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
-import javafx.scene.control.TextArea;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.Initializable;
@@ -54,6 +54,8 @@ public class ClientController implements Initializable, NetworkListener, FileLis
     public Label uploadFileName;
     @FXML
     public Label uploadPackage;
+    @FXML
+    public Button SelectSyncDir;
     //@FXML
     //private TextArea fileList;
 
@@ -61,8 +63,8 @@ public class ClientController implements Initializable, NetworkListener, FileLis
     private TransferMachine transferMachine;
     private AppCallback appCallback;
     private FileWatcher fileWatcher;
-    private Path localFolder;
-
+    private WatchRepo watchRepo;
+    private Path syncDir;
 
     //private Map<Path, Set<Path>> watchingFiles = new HashMap<>();
     //private Set<Path> awaitingResponseFiles = new HashSet<>();
@@ -70,7 +72,7 @@ public class ClientController implements Initializable, NetworkListener, FileLis
     //private Set<Path> awaitingTransferFiles = new HashSet<>();;
     private Set<FileDbMetadata> inStorageFiles = new HashSet<>();
 
-    private WatchRepo watchRepo = new WatchRepo();
+    //private WatchRepo watchRepo = new WatchRepo();
 
     //private Object monO= new Object();
 
@@ -134,6 +136,7 @@ public class ClientController implements Initializable, NetworkListener, FileLis
         GetFilesResult result = method.getResult();
         if (result != null && result.getFiles() != null && result.getFiles().size() > 0) {
             //this.fileList.clear();
+            inStorageFiles.clear();
             for (FileDbMetadata fileDbMetadata : result.getDbmetadata()) {
                 inStorageFiles.add(fileDbMetadata);
 //                //this.fileList.appendText(fileDbMetadata.getLocation() +
@@ -147,10 +150,12 @@ public class ClientController implements Initializable, NetworkListener, FileLis
 
     private void downloadFileFromServer() {
         for (FileDbMetadata inStorageFile : inStorageFiles) {
-            DownloadTask task = new DownloadTask();
-            task.setFileDbMetadata(inStorageFile);
-            task.setUserFolder(localFolder.toString());
-            transferMachine.addDownloadTask(task);
+            if (!Files.exists(Paths.get(syncDir + inStorageFile.getLocation() + File.separator + inStorageFile.getFileName()))) {
+                DownloadTask task = new DownloadTask();
+                task.setFileDbMetadata(inStorageFile);
+                task.setUserFolder(syncDir.toString());
+                transferMachine.addDownloadTask(task);
+            }
         }
     }
 
@@ -183,11 +188,11 @@ public class ClientController implements Initializable, NetworkListener, FileLis
     }
 
     private Path getLocalPath(Path path) {
-        return Paths.get(localFolder + File.separator + path);
+        return Paths.get(syncDir + File.separator + path);
     }
 
     private Path getRelativePath(Path path){
-        return Paths.get(path.getParent().toString().replace(localFolder.toString(), ""));
+        return Paths.get(path.getParent().toString().replace(syncDir.toString(), ""));
     }
 
     /**
@@ -196,17 +201,27 @@ public class ClientController implements Initializable, NetworkListener, FileLis
      */
     public void OnPressedAction(ActionEvent actionEvent) {
         try {
-            if (localFolder == null) {
-                localFolder = getLocalFolder();
-            }
-            if (localFolder != null && fileWatcher == null) {
+           // if (localFolder == null) {
+                syncDir = getSyncDir();
+            //}
+
+            SelectSyncDir.setText("Current: " + syncDir);
+            if (syncDir != null){
+                if (fileWatcher != null){
+                    fileWatcher.shutdown();
+                }
                 fileWatcher = new FileWatcher();
-                fileWatcher.register(localFolder);
+                //fileWatcher.register(localFolder);
+                fileWatcher.registerAll(syncDir);
                 fileWatcher.addListener(this);
                 fileWatcher.start();
 
+                if (watchRepo != null) {
+                    watchRepo.shutdown();
+                }
                 watchRepo = new WatchRepo();
                 watchRepo.addListener(this);
+                watchRepo.setSyncDir(syncDir);
                 watchRepo.start();
             }
 
@@ -224,7 +239,7 @@ public class ClientController implements Initializable, NetworkListener, FileLis
      * Запуск диалога выбора директории для синхронизации
      * @return
      */
-    private Path getLocalFolder() {
+    private Path getSyncDir() {
         DirectoryChooser directoryChooser = new DirectoryChooser();
         directoryChooser.setTitle("Select folder to sync file");
         File file = directoryChooser.showDialog(appCallback.getStage());
@@ -235,12 +250,15 @@ public class ClientController implements Initializable, NetworkListener, FileLis
     }
 
     public void close() {
-        //System.out.println("Start transfer machine shutdown");
         if (transferMachine != null){
             transferMachine.shutdown();
         }
-        if (watchRepo != null)
+        if (watchRepo != null) {
             watchRepo.shutdown();
+        }
+        if (fileWatcher != null){
+            fileWatcher.shutdown();
+        }
     }
 
     /**
@@ -305,7 +323,7 @@ public class ClientController implements Initializable, NetworkListener, FileLis
 
     private void addAwaitingResp(Path path) {
         //synchronized (monO) {
-            System.out.printf("Add awaiting for responce %s\n ",path);
+            System.out.printf("Add awaiting for response %s\n ",path);
             //awaitingResponseFiles.add(path);
             awaitingResponseFiles1.add(path);
         //}
@@ -320,6 +338,7 @@ public class ClientController implements Initializable, NetworkListener, FileLis
             System.out.println("[DEBUG] to transfer: " + file);
             transferMachine.addUploadTask(new UploadTask(file, createMetadata(file)));
         }catch (Exception e){
+            e.printStackTrace();
             removeAwaitingResponse(file);
         }
     }
@@ -362,22 +381,33 @@ public class ClientController implements Initializable, NetworkListener, FileLis
      * @param event
      */
     private void transferHandle(TransferEvent event) {
+        double currNum = event.getCurrentNumber();
+        double totalNum = event.getTotalNumber();
+        double currProgress = currNum / totalNum;
+
         if ("UPLOAD".equals(event.getType())) {
             uploadFileName.setText(event.getFileName());
             uploadPackage.setText(event.getCurrentNumber() + " of " + event.getTotalNumber());
-            double currNum = event.getCurrentNumber();
-            double totalNum = event.getTotalNumber();
-            double currProgress = currNum / totalNum;
             uploadProgress.setProgress(currProgress);
+//            uploadFileName.setText(event.getFileName());
+//            uploadPackage.setText(event.getCurrentNumber() + " of " + event.getTotalNumber());
+//            double currNum = event.getCurrentNumber();
+//            double totalNum = event.getTotalNumber();
+//            double currProgress = currNum / totalNum;
+//            uploadProgress.setProgress(currProgress);
+
+
         }
 
         if ("DOWNLOAD".equals(event.getType())){
             downloadFileName.setText(event.getFileName());
             downloadPackage.setText(event.getCurrentNumber() + " of " + event.getTotalNumber());
-            double currNum = event.getCurrentNumber();
-            double totalNum = event.getTotalNumber();
-            double currProgress = currNum / totalNum;
             downloadProgress.setProgress(currProgress);
+
+//            double currNum = event.getCurrentNumber();
+//            double totalNum = event.getTotalNumber();
+//            double currProgress = currNum / totalNum;
+//            downloadProgress.setProgress(currProgress);
         }
 
     }

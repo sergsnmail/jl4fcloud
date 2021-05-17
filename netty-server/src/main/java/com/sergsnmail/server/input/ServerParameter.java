@@ -2,5 +2,6 @@ package com.sergsnmail.server.input;
 
 public interface ServerParameter {
     int getPort();
-    String getStorage();
+    String getStorageRootDir();
+    String getDbLocation();
 }

@@ -18,7 +18,7 @@ import com.sergsnmail.server.db.file.StorageFile;
 import com.sergsnmail.server.db.user.User;
 import com.sergsnmail.server.db.user.UserDataSourceImpl;
 import com.sergsnmail.server.db.user.UserServiceImpl;
-import com.sergsnmail.server.input.HandlerParameter;
+import com.sergsnmail.server.input.ServerParameter;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import com.sergsnmail.common.json.Base64Converter;
@@ -40,7 +40,7 @@ import static java.nio.file.StandardOpenOption.CREATE;
 
 public class MessageServerHandler extends SimpleChannelInboundHandler<Message> implements Network {
 
-    private HandlerParameter appParam;
+    private ServerParameter appParam;
     private final String HANDLER_ID = "Message";
     private ChannelHandlerContext ctx;
     private UserServiceImpl userService;
@@ -54,11 +54,11 @@ public class MessageServerHandler extends SimpleChannelInboundHandler<Message> i
     PackageCollection currentPackageCollection;
     StorageFile currentDownloadStorageFile;
 
-    public MessageServerHandler(HandlerParameter appParam, UserSession userSession) {
+    public MessageServerHandler(ServerParameter appParam, UserSession userSession) {
         this.appParam = appParam;
         this.userSession = userSession;
 
-        DbStorage db= new DbStorage();
+        DbStorage db= new DbStorage(this.appParam.getDbLocation());
         this.userService = new UserServiceImpl(new UserDataSourceImpl(db));
         this.fileService = new FileServiceImpl(new FileDataSourceImpl(db));
     }
@@ -354,7 +354,7 @@ public class MessageServerHandler extends SimpleChannelInboundHandler<Message> i
      */
     private String getNewStagedFile(TransferFilesParam param, User user) {
         FileMetadata fMeta = (FileMetadata) param.getTransferPackage().getMetadata();
-        String newStorageFilePath = appParam.getLocation() + File.separator + genNewStorageFilePath();
+        String newStorageFilePath = appParam.getStorageRootDir() + File.separator + genNewStorageFilePath();
         StorageFile storageFile = StorageFile.builder()
                 .user(user)
                 .file_name(fMeta.getFileName())

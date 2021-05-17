@@ -20,12 +20,10 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 public class ClientNetwork implements Network {
 
     private SocketChannel channel;
-    private static final String HOST = "localhost";
-    private static final int PORT = 8989;
 
     private MessageClientHandler messageHandler = new MessageClientHandler();
 
-    public ClientNetwork() {
+    public ClientNetwork(int port, String host) {
         new Thread(() -> {
             EventLoopGroup workerGroup = new NioEventLoopGroup();
             try {
@@ -46,7 +44,7 @@ public class ClientNetwork implements Network {
                 });
 
                 // Start the client.
-                ChannelFuture f = b.connect(HOST, PORT).sync();
+                ChannelFuture f = b.connect(host, port).sync();
                 // Wait until the connection is closed.
                 f.channel().closeFuture().sync();
             } catch (Exception e) {

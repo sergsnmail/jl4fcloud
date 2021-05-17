@@ -2,21 +2,28 @@ package com.sergsnmail.server;
 
 import com.sergsnmail.server.input.InputParameter;
 
+/**
+ * Параметры запуска
+ * Порт: -port=8989
+ * Папка хранения файлов: -storage=e:\temp\storage
+ * Путь до БД: -db=e:\temp\cloud.db
+ */
 public class ServerApp {
     private static final String DEFAULT_STORAGE_LOCATION = "E:\\temp\\storage";
     private static final int DEFAULT_PORT=8989;
+    private static final String DEFAULT_DATABASE = "storage.db";
 
     private static int port;
     private static String storage;
+    private static String database;
 
     public static void main(String[] args) {
 
         port = DEFAULT_PORT;
         storage = DEFAULT_STORAGE_LOCATION;
+        database = DEFAULT_DATABASE;
 
         if (args.length > 0){
-
-            String storageFromArgs = getStorage(args);
 
             try{
                 int portFromArgs = getPort(args);
@@ -28,16 +35,30 @@ public class ServerApp {
             }
 
             try{
+                String storageFromArgs = getStorage(args);
                 if (!storageFromArgs.isEmpty()){
                     storage = storageFromArgs;
                 }
             }catch (IllegalArgumentException e){
                 e.printStackTrace();
             }
+
+            try{
+                String dbLocation = getDb(args);
+                if (!dbLocation.isEmpty()){
+                    database = dbLocation;
+                }
+            }catch (IllegalArgumentException e){
+                e.printStackTrace();
+            }
+
         }
         InputParameter inputParameter = new InputParameter();
         try {
-            inputParameter.setLocation(storage).setPort(port);
+            inputParameter
+                    .setLocation(storage)
+                    .setPort(port)
+                    .setDbLocation(database);
             new AppBootstrap(inputParameter).start();
         } catch (Exception e) {
             System.err.println(e.getMessage());
@@ -52,6 +73,11 @@ public class ServerApp {
     private static int getPort(String[] args) throws IllegalArgumentException {
         String argStr = getParamStr("-port", args);
         return Integer.parseInt(getValue(argStr));
+    }
+
+    private static String getDb(String[] args) throws IllegalArgumentException {
+        String argStr = getParamStr("-db", args);
+        return getValue(argStr);
     }
 
     private static String getParamStr(String param, String[] args) throws IllegalArgumentException{

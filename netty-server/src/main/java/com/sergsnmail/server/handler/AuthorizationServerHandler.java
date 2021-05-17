@@ -10,6 +10,7 @@ import com.sergsnmail.common.message.common.Method;
 import com.sergsnmail.common.message.method.auth.AuthMethod;
 import com.sergsnmail.common.message.method.auth.AuthParam;
 import com.sergsnmail.common.message.method.auth.AuthResult;
+import com.sergsnmail.server.input.InputParameter;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import com.sergsnmail.common.message.common.UserSession;
@@ -21,10 +22,13 @@ public class AuthorizationServerHandler extends ChannelInboundHandlerAdapter {
 
     private final String HANDLER_ID = "Authorization";
     private final UserSession userSession;
-    private UserServiceImpl userService = new UserServiceImpl(new UserDataSourceImpl(new DbStorage()));
+    private final InputParameter appParam;
+    private UserServiceImpl userService;
 
-    public AuthorizationServerHandler(UserSession userSession) {
+    public AuthorizationServerHandler(InputParameter appParam, UserSession userSession) {
         this.userSession = userSession;
+        this.appParam = appParam;
+        this.userService = new UserServiceImpl(new UserDataSourceImpl(new DbStorage(this.appParam.getDbLocation())));
     }
 
     @Override
