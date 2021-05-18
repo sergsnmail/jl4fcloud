@@ -41,7 +41,7 @@ import static java.nio.file.StandardOpenOption.CREATE;
 public class MessageServerHandler extends SimpleChannelInboundHandler<Message> implements Network {
 
     private ServerParameter appParam;
-    private final String HANDLER_ID = "Message";
+    private final String HANDLER_ID = "Client";
     private ChannelHandlerContext ctx;
     private UserServiceImpl userService;
     private FileServiceImpl fileService;

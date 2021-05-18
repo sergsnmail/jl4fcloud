@@ -10,8 +10,8 @@ import com.sergsnmail.server.input.InputParameter;
  */
 public class ServerApp {
     private static final String DEFAULT_STORAGE_LOCATION = "E:\\temp\\storage";
-    private static final int DEFAULT_PORT=8989;
-    private static final String DEFAULT_DATABASE = "storage.db";
+    private static final int DEFAULT_PORT = 8989;
+    private static final String DEFAULT_DATABASE = "c:\\temp\\storage.db";
 
     private static int port;
     private static String storage;
@@ -86,7 +86,7 @@ public class ServerApp {
                 return arg;
             }
         }
-        throw new IllegalArgumentException(String.format("No such startup parameter (%s)", param));
+        throw new IllegalArgumentException(String.format("No such startup parameter (%s), using default value", param));
     }
 
     private static String getValue(String argStr) throws IllegalArgumentException{

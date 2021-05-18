@@ -4,12 +4,12 @@ import java.sql.*;
 
 public class DbStorage {
 
-    private final String DEFAULT_DATABASE = "storage.db";
+    private final String DEFAULT_DATABASE = "c:\\temp\\storage.db";
     private String dbName;
 
-    public DbStorage() {
+    /*public DbStorage() {
         this.dbName = DEFAULT_DATABASE;
-    }
+    }*/
 
     public DbStorage(String dbName) {
         if (dbName == null){

@@ -18,7 +18,7 @@ public class InputParameter implements ServerParameter{
         }
         Path locPath = Paths.get(location);
         if (!Files.exists(locPath)){
-            Files.createDirectory(locPath);
+            Files.createDirectories(locPath);
         }
         this.location = location;
         return this;
@@ -29,9 +29,13 @@ public class InputParameter implements ServerParameter{
         return this;
     }
 
-    public InputParameter setDbLocation(String dbLocation) {
+    public InputParameter setDbLocation(String dbLocation) throws IOException {
+        Path dbPath = Paths.get(dbLocation);
+        if (!Files.exists(dbPath)){
+            Files.createDirectories(dbPath.getParent());
+        }
         this.dbLocation = dbLocation;
-        return  this;
+        return this;
     }
 
     @Override

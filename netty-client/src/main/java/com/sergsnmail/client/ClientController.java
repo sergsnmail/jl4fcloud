@@ -294,7 +294,7 @@ public class ClientController implements Initializable, NetworkListener, FileLis
      */
     private void getFileInfoFromServer(Path path) {
         if (!transferMachine.isLocked(Paths.get(getRelativePath(path) + File.separator + path.getFileName())) && !awaitingResponseFiles1.contains(path)) {
-            System.out.println("[DEBUG] get info from server: " + path);
+            //System.out.println("[DEBUG] get info from server: " + path);
             addAwaitingResp(path);
 
             FileInfoParam fileInfoParam = new FileInfoParam();
@@ -315,7 +315,7 @@ public class ClientController implements Initializable, NetworkListener, FileLis
 
     private void removeAwaitingResponse(Path localFilePath) {
         //synchronized (monO) {
-            System.out.printf("remove awaiting for responce %s\n ",localFilePath);
+            //System.out.printf("remove awaiting for responce %s\n ",localFilePath);
             //awaitingResponseFiles.remove(localFilePath);
             awaitingResponseFiles1.remove(localFilePath);
         //}
@@ -323,7 +323,7 @@ public class ClientController implements Initializable, NetworkListener, FileLis
 
     private void addAwaitingResp(Path path) {
         //synchronized (monO) {
-            System.out.printf("Add awaiting for response %s\n ",path);
+            //System.out.printf("Add awaiting for response %s\n ",path);
             //awaitingResponseFiles.add(path);
             awaitingResponseFiles1.add(path);
         //}
@@ -335,7 +335,7 @@ public class ClientController implements Initializable, NetworkListener, FileLis
      */
     public void sendFile(Path file) {
         try {
-            System.out.println("[DEBUG] to transfer: " + file);
+            //System.out.println("[DEBUG] to transfer: " + file);
             transferMachine.addUploadTask(new UploadTask(file, createMetadata(file)));
         }catch (Exception e){
             e.printStackTrace();

@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Stream;
 
 public class WatchRepo {
@@ -20,6 +21,8 @@ public class WatchRepo {
     private ConcurrentHashMap<Path, RepoInfo> watchedFiles = new ConcurrentHashMap<>();
     private ConcurrentHashMap<Path, Long> copyFolder = new ConcurrentHashMap<>();
     private List<WatchRepoListener> listeners = new ArrayList<>();
+    private AtomicBoolean isCopy = new AtomicBoolean(false);
+    private Object mon = new Object();
 
     private Path syncDir;
 
@@ -30,48 +33,58 @@ public class WatchRepo {
     }
 
     public void add(Path file){
-        if (file == null && !Files.exists(file)){
-            throw new IllegalArgumentException("File not exist");
-        }
-
-        long currentTime = System.currentTimeMillis();
-        if (watchedFiles.containsKey(file)){
-            RepoInfo repoInfo = watchedFiles.get(file);
-            Long prevLastUpdate = repoInfo.getLastUpdate();
-            if (currentTime - prevLastUpdate < COPY_TIMEOUT && currentTime - prevLastUpdate > 0){
-                //System.out.println("Copy detected!!!");
-                repoInfo.setState(WatchedFileState.UPDATE_WHILE_COPING);
-            } else {
-                repoInfo.setState(WatchedFileState.UPDATED);
+            if (file == null && !Files.exists(file)) {
+                throw new IllegalArgumentException("File not exist");
             }
-        } else {
-            RepoInfo newRepoInfo = new RepoInfo();
-            newRepoInfo.setRegistered(currentTime);
-            newRepoInfo.setState(WatchedFileState.CREATE);
-            newRepoInfo.setLastUpdate(currentTime);
-            watchedFiles.put(file, newRepoInfo);
-        }
+
+        synchronized (mon) {
+            long currentTime = System.currentTimeMillis();
+            if (watchedFiles.containsKey(file)) {
+                RepoInfo repoInfo = watchedFiles.get(file);
+                Long prevLastUpdate = repoInfo.getLastUpdate();
+                if (currentTime - prevLastUpdate < COPY_TIMEOUT && currentTime - prevLastUpdate > 0) {
+                    System.out.println("Copy detected!!!");
+                    repoInfo.setState(WatchedFileState.UPDATE_WHILE_COPING);
+                } else {
+                    repoInfo.setState(WatchedFileState.UPDATED);
+                }
+            } else {
+                RepoInfo newRepoInfo = new RepoInfo();
+                newRepoInfo.setRegistered(currentTime);
+                newRepoInfo.setState(WatchedFileState.CREATE);
+                newRepoInfo.setLastUpdate(currentTime);
+                watchedFiles.put(file, newRepoInfo);
+            }
+
+                mon.notifyAll();
+            }
     }
 
     private void addForce(Path file){
-        if (file == null && !Files.exists(file)){
-            throw new IllegalArgumentException("File not exist");
-        }
+            if (file == null && !Files.exists(file)) {
+                throw new IllegalArgumentException("File not exist");
+            }
+        synchronized (mon) {
+            long currentTime = System.currentTimeMillis();
+            if (watchedFiles.containsKey(file)) {
+                watchedFiles.remove(file);
+            } else {
+                RepoInfo newRepoInfo = new RepoInfo();
+                newRepoInfo.setRegistered(currentTime);
+                newRepoInfo.setState(WatchedFileState.UPDATED);
+                newRepoInfo.setLastUpdate(currentTime);
+                watchedFiles.put(file, newRepoInfo);
+            }
 
-        long currentTime = System.currentTimeMillis();
-        if (watchedFiles.containsKey(file)){
-            watchedFiles.remove(file);
-        } else {
-            RepoInfo newRepoInfo = new RepoInfo();
-            newRepoInfo.setRegistered(currentTime);
-            newRepoInfo.setState(WatchedFileState.UPDATED);
-            newRepoInfo.setLastUpdate(currentTime);
-            watchedFiles.put(file, newRepoInfo);
+            mon.notifyAll();
         }
     }
 
     public void remove(Path path) throws NoSuchMethodException {
-        watchedFiles.remove(path);
+        synchronized (mon) {
+            watchedFiles.remove(path);
+            mon.notifyAll();
+        }
     }
 
     public void addListener(WatchRepoListener watchRepoListener) {
@@ -95,7 +108,9 @@ public class WatchRepo {
                 //System.out.println("checking file in repo");
                 try {
                     long currentTime = System.currentTimeMillis();
+                    boolean isActivity = false;
                     for (Path path : watchedFiles.keySet()) {
+                        //scanFolder(path.getParent());
                         RepoInfo repoInfo = watchedFiles.get(path);
                         if (repoInfo != null) {
                             //System.out.println(repoInfo);
@@ -103,12 +118,17 @@ public class WatchRepo {
                                 //System.out.printf("Transfer ready for %s\n", repoInfo);
                                 repoInfo.setState(WatchedFileState.SYNC);
                                 fireNotify(path);
+                                isActivity = true;
                             } else if (WatchedFileState.UPDATE_WHILE_COPING.equals(repoInfo.getState())) {
                                 if (currentTime - repoInfo.getRegistered() > DEFAULT_UPDATE_TIMEOUT) {
-                                    repoInfo.setState(WatchedFileState.UPDATED);
+                                    repoInfo.setState(WatchedFileState.SYNC);
+                                    fireNotify(path);
+                                    //repoInfo.setState(WatchedFileState.UPDATED);
                                     scanFolder(path.getParent());
                                 }
+                                isActivity = true;
                             }else if (WatchedFileState.CREATE.equals(repoInfo.getState())) {
+                                isActivity = true;
                                 if (currentTime - repoInfo.getRegistered() > DEFAULT_UPDATE_TIMEOUT) {
                                     repoInfo.setState(WatchedFileState.UPDATED);
                                 }
@@ -117,7 +137,15 @@ public class WatchRepo {
                     }
 
                     long startWait = System.currentTimeMillis();
-                    while (System.currentTimeMillis() - startWait < WAIT_TIMEOUT && !Thread.currentThread().isInterrupted() ){}
+                    while (System.currentTimeMillis() - startWait < WAIT_TIMEOUT && !Thread.currentThread().isInterrupted() ){
+                    }
+
+                    if (!isActivity){
+                        synchronized (mon){
+                            mon.wait();
+                        }
+                    }
+
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -127,9 +155,10 @@ public class WatchRepo {
     }
 
     private void scanFolder(Path folder){
+        System.out.printf("Scanning folder %s\n",folder);
         try (Stream<Path> paths = Files.walk(folder)) {
             paths.filter(Files::isRegularFile).forEach((currFile) -> {
-                if (!watchedFiles.containsKey(currFile)){
+                if (!watchedFiles.containsKey(currFile)) {
                     addForce(currFile);
                 }
             });
@@ -140,6 +169,9 @@ public class WatchRepo {
 
     public void shutdown(){
         SERVICE.shutdownNow();
+        synchronized (mon){
+            mon.notifyAll();
+        }
     }
 }
 
