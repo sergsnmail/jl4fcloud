@@ -2,3 +2,7 @@
 /netty-client/target/
 /netty-common-obj/target/
 /netty-server/target/
+/.idea
+.idea/
+*.iml
+*.class
